@@ -85,11 +85,30 @@ static int process_elf(Elf *e)
 	return 0;
 }
 
-int main(void)
+int main(int argc, const char *argv[])
 {
+	int i;
+	int ret;
+
+	if (argc < 2) {
+		fprintf(
+			stderr,
+			"usage: %s <list of elf files to patch>\n",
+			(argc > 0 && argv[0]) ? argv[0] : "shengloong"
+		);
+		return EX_USAGE;
+	}
+
 	if (elf_version(EV_CURRENT) == EV_NONE) {
 		errx(EX_SOFTWARE, "libelf initialization failed: %s", elf_errmsg(-1));
 	}
 
-	return process("/proc/self/exe");
+	for (i = 1; i < argc; i++) {
+		ret = process(argv[i]);
+		if (ret) {
+			return ret;
+		}
+	}
+
+	return 0;
 }
