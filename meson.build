@@ -1,3 +1,7 @@
 project('shengloong', 'c')
 
-executable('shengloong', 'main.c')
+deps = [
+  dependency('libelf'),
+]
+
+executable('shengloong', 'main.c', dependencies: deps)
