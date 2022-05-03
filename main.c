@@ -14,10 +14,30 @@
 #define EM_LOONGARCH 258
 #endif
 
-static int process_elf(const char *path, Elf *e, bool dry_run);
-static int process(const char *path, bool dry_run);
+struct sl_cfg {
+	bool verbose;
+	bool dry_run;
+};
 
-static int process(const char *path, bool dry_run)
+struct sl_elf_ctx {
+	const struct sl_cfg *cfg;
+
+	const char *path;
+	Elf *e;
+
+	size_t dynstr;
+};
+
+static int process(const struct sl_cfg *cfg, const char *path);
+static int process_elf(struct sl_elf_ctx *ctx);
+static int process_elf_dynsym(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
+
+static const char *sl_elf_dynstr(struct sl_elf_ctx *ctx, size_t idx)
+{
+	return elf_strptr(ctx->e, ctx->dynstr, idx);
+}
+
+static int process(const struct sl_cfg *cfg, const char *path)
 {
 	int fd;
 	Elf *e;
@@ -28,15 +48,21 @@ static int process(const char *path, bool dry_run)
 		return EX_NOINPUT;
 	}
 
-	e = elf_begin(fd, dry_run ? ELF_C_READ_MMAP : ELF_C_RDWR_MMAP, NULL);
+	e = elf_begin(fd, cfg->dry_run ? ELF_C_READ_MMAP : ELF_C_RDWR_MMAP, NULL);
 	if (!e) {
 		fprintf(stderr, "elf_begin on %s (fd %d) failed: %s\n", path, fd, elf_errmsg(-1));
 		goto close;
 	}
 
+	struct sl_elf_ctx ctx = {
+		.cfg = cfg,
+		.path = path,
+		.e = e,
+	};
+
 	switch (elf_kind(e)) {
 	case ELF_K_ELF:
-		ret = process_elf(path, e, dry_run);
+		ret = process_elf(&ctx);
 		break;
 
 	default:
@@ -57,8 +83,10 @@ close:
 	return EX_SOFTWARE;
 }
 
-static int process_elf(const char *path, Elf *e, bool dry_run)
+static int process_elf(struct sl_elf_ctx *ctx)
 {
+	Elf *e = ctx->e;
+
 	size_t len;
 	const char *ident = elf_getident(e, &len);
 	if (len != EI_NIDENT) {
@@ -83,11 +111,17 @@ static int process_elf(const char *path, Elf *e, bool dry_run)
 	}
 
 	Elf_Scn *s_dynsym = NULL;
+	size_t nr_dynsym = 0;
 	Elf_Scn *s_gnu_version = NULL;
+	size_t nr_gnu_version = 0;
 	Elf_Scn *s_gnu_version_r = NULL;
+	size_t nr_gnu_version_r = 0;
 	{
 		Elf_Scn *scn = NULL;
+		size_t i = 0;  // section idx, 0 is naturally skipped
 		while ((scn = elf_nextscn(e, scn)) != NULL) {
+			i++;
+
 			GElf_Shdr shdr;
 			if (gelf_getshdr(scn, &shdr) != &shdr) {
 				return EX_SOFTWARE;
@@ -98,25 +132,74 @@ static int process_elf(const char *path, Elf *e, bool dry_run)
 				return EX_SOFTWARE;
 			}
 
+			if (!strncmp(".dynstr", scn_name, 7)) {
+				ctx->dynstr = i;
+				continue;
+			}
 			if (!strncmp(".dynsym", scn_name, 7)) {
 				s_dynsym = scn;
+				nr_dynsym = shdr.sh_size;
 				continue;
 			}
 			// this must come first because .gnu.version is prefix of this
 			if (!strncmp(".gnu.version_r", scn_name, 14)) {
 				s_gnu_version_r = scn;
+				nr_gnu_version_r = shdr.sh_size;
 				continue;
 			}
 			if (!strncmp(".gnu.version", scn_name, 12)) {
 				s_gnu_version = scn;
+				nr_gnu_version = shdr.sh_size;
 				continue;
 			}
 		}
 	}
 
-	(void) printf("%s: .dynsym        at %p\n", path, s_dynsym);
-	(void) printf("%s: .gnu.version   at %p\n", path, s_gnu_version);
-	(void) printf("%s: .gnu.version_r at %p\n", path, s_gnu_version_r);
+	if (s_dynsym) {
+		int ret = process_elf_dynsym(ctx, s_dynsym, nr_dynsym);
+		if (ret) {
+			return ret;
+		}
+	}
+
+	if (ctx->cfg->verbose) {
+		(void) printf("%s: .gnu.version   at %p (%zd entries)\n", ctx->path, s_gnu_version, nr_gnu_version);
+		(void) printf("%s: .gnu.version_r at %p (%zd entries)\n", ctx->path, s_gnu_version_r, nr_gnu_version_r);
+	}
+
+	return 0;
+}
+
+static int process_elf_dynsym(
+	struct sl_elf_ctx *ctx,
+	Elf_Scn *s,
+	size_t n)
+{
+	size_t i = 0;
+	Elf_Data *d = NULL;
+	while (i < n && (d = elf_getdata(s, d)) != NULL) {
+		Elf64_Sym *sym = (Elf64_Sym *)(d->d_buf);
+		while ((void *)sym < (d->d_buf + d->d_size)) {
+			if (ELF64_ST_TYPE(sym->st_info) != STT_OBJECT) {
+				// STT_FUNC names are stored without version information,
+				// so only look at STT_OBJECT symbols
+				goto next_sym;
+			}
+
+			// it seems version symbols are all stored with STN_ABS
+			if (sym->st_shndx != SHN_ABS) {
+				goto next_sym;
+			}
+
+			if (ctx->cfg->verbose) {
+				printf("%s: announced symbol version %s at idx %zd\n", ctx->path, sl_elf_dynstr(ctx, sym->st_name), i);
+			}
+
+next_sym:
+			i++;
+			sym++;
+		}
+	}
 
 	return 0;
 }
@@ -135,13 +218,18 @@ int main(int argc, const char *argv[])
 		return EX_USAGE;
 	}
 
+	struct sl_cfg cfg = {
+		.verbose = true,
+		.dry_run = true,
+	};
+
 	if (elf_version(EV_CURRENT) == EV_NONE) {
 		errx(EX_SOFTWARE, "libelf initialization failed: %s", elf_errmsg(-1));
 	}
 
 	for (i = 1; i < argc; i++) {
 		// TODO: non-dry-run
-		ret = process(argv[i], true);
+		ret = process(&cfg, argv[i]);
 		if (ret) {
 			return ret;
 		}
