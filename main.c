@@ -57,7 +57,9 @@ struct sl_cfg {
 	int verbose;
 	bool dry_run;
 
+	const char *from_ver;
 	const char *to_ver;
+	Elf64_Word from_elfhash;
 	Elf64_Word to_elfhash;
 };
 
@@ -138,6 +140,7 @@ static int process_elf_dynsym(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
 static int process_elf_gnu_version_d(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
 static int process_elf_gnu_version_r(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
 static int patch_ldso_rodata(struct sl_elf_ctx *ctx, Elf_Scn *s);
+static int patch_ldso_text_hashes(struct sl_elf_ctx *ctx, Elf_Scn *s);
 
 // moves fd
 static int process(const struct sl_cfg *cfg, const char *path, int fd)
@@ -204,7 +207,6 @@ static int process_elf(struct sl_elf_ctx *ctx)
 	}
 
 	bool is_ldso = endswith(ctx->path, "ld-linux-loongarch-lp64d.so.1", 29);
-	bool needs_rodata_patching = is_ldso;
 
 	size_t shstrndx;
 	if (elf_getshdrstrndx(e, &shstrndx) != 0) {
@@ -218,6 +220,7 @@ static int process_elf(struct sl_elf_ctx *ctx)
 	Elf_Scn *s_gnu_version_r = NULL;
 	size_t nr_gnu_version_r = 0;
 	Elf_Scn *s_rodata = NULL;
+	Elf_Scn *s_text = NULL;
 	{
 		Elf_Scn *scn = NULL;
 		size_t i = 0;  // section idx, 0 is naturally skipped
@@ -244,10 +247,6 @@ static int process_elf(struct sl_elf_ctx *ctx)
 				nr_dynsym = shdr.sh_size;
 				continue;
 			}
-			if (needs_rodata_patching && !strncmp(".rodata", scn_name, 7)) {
-				s_rodata = scn;
-				continue;
-			}
 			// we don't really need to check .gnu.version, because the
 			// versions referred to all come from here
 			if (!strncmp(".gnu.version_d", scn_name, 14)) {
@@ -259,6 +258,17 @@ static int process_elf(struct sl_elf_ctx *ctx)
 				s_gnu_version_r = scn;
 				nr_gnu_version_r = shdr.sh_info;
 				continue;
+			}
+
+			if (is_ldso) {
+				if (!strncmp(".rodata", scn_name, 7)) {
+					s_rodata = scn;
+					continue;
+				}
+				if (!strncmp(".text", scn_name, 5)) {
+					s_text = scn;
+					continue;
+				}
 			}
 		}
 	}
@@ -284,10 +294,19 @@ static int process_elf(struct sl_elf_ctx *ctx)
 		}
 	}
 
-	if (needs_rodata_patching && s_rodata) {
-		int ret = patch_ldso_rodata(ctx, s_rodata);
-		if (ret) {
-			return ret;
+	if (is_ldso) {
+		if (s_rodata) {
+			int ret = patch_ldso_rodata(ctx, s_rodata);
+			if (ret) {
+				return ret;
+			}
+		}
+
+		if (s_text) {
+			int ret = patch_ldso_text_hashes(ctx, s_text);
+			if (ret) {
+				return ret;
+			}
 		}
 	}
 
@@ -539,6 +558,120 @@ static int patch_ldso_rodata(struct sl_elf_ctx *ctx, Elf_Scn *s)
 	return 0;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+
+static bool is_lu12i_w_with_imm(uint32_t insn, uint32_t imm)
+{
+	// insn format is DSj20 -- we match both opcode and imm part
+	uint32_t match = 0x14000000 | ((imm & 0xfffff) << 5);
+	return (insn & 0xffffffe0) == match;
+}
+
+static bool is_ori_exact(uint32_t insn, int rd, int rj, uint32_t imm)
+{
+	// insn format is DJUk12 -- we match exactly
+	uint32_t match = 0x03800000 | ((imm & 0xfff) << 10) | (rj << 5) | rd;
+	return insn == match;
+}
+
+static bool is_clobbering_rd(uint32_t insn, int rd)
+{
+	// XXX not exact -- correct solution would require properly disassembling,
+	// hence complete opcode info
+	return (insn & 0x1f) == rd;
+}
+
+static uint32_t patch_dsj20_imm(uint32_t old_insn, uint32_t new_imm)
+{
+	return (old_insn & 0xfe00001f) | ((new_imm & 0xfffff) << 5);
+}
+
+static uint32_t patch_djuk12_imm(uint32_t old_insn, uint32_t new_imm)
+{
+	return (old_insn & 0xffc003ff) | ((new_imm & 0xfff) << 10);
+}
+
+static int patch_ldso_text_hashes(struct sl_elf_ctx *ctx, Elf_Scn *s)
+{
+	uint32_t old_hash_lo12 = ctx->cfg->from_elfhash & 0xfff;
+	uint32_t old_hash_hi20 = ctx->cfg->from_elfhash >> 12;
+
+	uint32_t new_hash_lo12 = ctx->cfg->to_elfhash & 0xfff;
+	uint32_t new_hash_hi20 = ctx->cfg->to_elfhash >> 12;
+
+	Elf_Data *d = NULL;
+	while ((d = elf_getdata(s, d)) != NULL) {
+		uint32_t *p = d->d_buf;
+		uint32_t *end = (uint32_t *)(d->d_buf + d->d_size);
+
+		uint32_t *hi20_insn = NULL;
+		int reg = 0;
+		for (; p < end; p++) {
+			if (hi20_insn == NULL) {
+				// find first lu12i.w
+				if (!is_lu12i_w_with_imm(*p, old_hash_hi20)) {
+					continue;
+				}
+
+				hi20_insn = p;
+				reg = (*p) & 0x1f;
+				continue;
+			}
+
+			// find matching ori
+			if (is_ori_exact(*p, reg, reg, old_hash_lo12)) {
+				// found an immediate load of old hash
+				if (ctx->cfg->dry_run) {
+					printf(
+						"%s: old hash in .text needs patching: lu12i.w offset %zd, ori offset %zd\n",
+						ctx->path,
+						(void *)hi20_insn - d->d_buf,
+						(void *)p - d->d_buf
+					);
+					goto reset_state;
+				}
+
+				// patch
+				uint32_t new_lu12i_w = patch_dsj20_imm(*hi20_insn, new_hash_hi20);
+				uint32_t new_ori = patch_djuk12_imm(*p, new_hash_lo12);
+
+				printf(
+					"%s: patching old hash in .text: lu12i.w offset %zd %08x -> %08x, ori offset %zd %08x -> %08x\n",
+					ctx->path,
+					(void *)hi20_insn - d->d_buf,
+					*hi20_insn,
+					new_lu12i_w,
+					(void *)p - d->d_buf,
+					*p,
+					new_ori
+				);
+
+				*hi20_insn = new_lu12i_w;
+				*p = new_ori;
+				elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
+
+				goto reset_state;
+			}
+
+			// if rd becomes clobbered, then restart matching lu12i.w,
+			// otherwise keep searching for that ori
+			if (is_clobbering_rd(*p, reg)) {
+				goto reset_state;
+			}
+
+			continue;
+
+reset_state:
+			hi20_insn = NULL;
+			reg = 0;
+		}
+	}
+
+	return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
 struct sl_cfg global_cfg;
 
 static int walk_fn(
@@ -607,12 +740,15 @@ int main(int argc, const char *argv[])
 		return EX_USAGE;
 	}
 
+	const char *from_ver = "GLIBC_2.35";
 	const char *new_ver = "GLIBC_2.36";
 	struct sl_cfg cfg = {
 		.verbose = 1,
 		.dry_run = false,
 
+		.from_ver = from_ver,
 		.to_ver = new_ver,
+		.from_elfhash = bfd_elf_hash(from_ver),
 		.to_elfhash = bfd_elf_hash(new_ver),
 	};
 	global_cfg = cfg;
