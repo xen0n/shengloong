@@ -37,6 +37,8 @@ struct sl_elf_ctx {
 
 	size_t dynstr;
 	Elf_Data *dynstr_d;
+
+	bool dirty;
 };
 
 static const char *sl_elf_dynstr(const struct sl_elf_ctx *ctx, size_t idx)
@@ -68,6 +70,7 @@ static int sl_elf_patch_dynstr_by_off(struct sl_elf_ctx *ctx, size_t off, const 
 		return EX_DATAERR;
 	}
 
+	ctx->dirty = true;
 	memmove(oldval, newval, newlen);
 	elf_flagdata(ctx->dynstr_d, ELF_C_SET, ELF_F_DIRTY);
 
@@ -110,6 +113,7 @@ static int process(const struct sl_cfg *cfg, const char *path)
 		.cfg = cfg,
 		.path = path,
 		.e = e,
+		.dirty = false,
 	};
 
 	switch (elf_kind(e)) {
@@ -216,8 +220,10 @@ static int process_elf(struct sl_elf_ctx *ctx)
 		}
 	}
 
-	if (!ctx->cfg->dry_run) {
-		if (elf_update(e, ELF_C_WRITE) < 0) {
+	if (!ctx->cfg->dry_run && ctx->dirty) {
+		// don't alter preexisting layout
+		elf_flagelf(e, ELF_C_SET, ELF_F_LAYOUT);
+		if (elf_update(e, ELF_C_WRITE_MMAP) < 0) {
 			fprintf(stderr, "%s: elf_update failed: %s\n", ctx->path, elf_errmsg(-1));
 			return EX_SOFTWARE;
 		}
