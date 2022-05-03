@@ -1,5 +1,6 @@
 #include <err.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <sysexits.h>
 #include <unistd.h>
@@ -10,10 +11,10 @@
 #define EM_LOONGARCH 258
 #endif
 
-static int process_elf(Elf *e);
-static int process(const char *path);
+static int process_elf(Elf *e, bool dry_run);
+static int process(const char *path, bool dry_run);
 
-static int process(const char *path)
+static int process(const char *path, bool dry_run)
 {
 	int fd;
 	Elf *e;
@@ -24,7 +25,7 @@ static int process(const char *path)
 		return EX_NOINPUT;
 	}
 
-	e = elf_begin(fd, ELF_C_RDWR, NULL);
+	e = elf_begin(fd, dry_run ? ELF_C_READ_MMAP : ELF_C_RDWR_MMAP, NULL);
 	if (!e) {
 		fprintf(stderr, "elf_begin on %s (fd %d) failed: %s\n", path, fd, elf_errmsg(-1));
 		goto close;
@@ -36,7 +37,7 @@ static int process(const char *path)
 		break;
 
 	case ELF_K_ELF:
-		ret = process_elf(e);
+		ret = process_elf(e, dry_run);
 		break;
 
 	default:
@@ -54,7 +55,7 @@ close:
 	return EX_SOFTWARE;
 }
 
-static int process_elf(Elf *e)
+static int process_elf(Elf *e, bool dry_run)
 {
 	size_t len;
 	const char *ident;
@@ -104,7 +105,8 @@ int main(int argc, const char *argv[])
 	}
 
 	for (i = 1; i < argc; i++) {
-		ret = process(argv[i]);
+		// TODO: non-dry-run
+		ret = process(argv[i], true);
 		if (ret) {
 			return ret;
 		}
