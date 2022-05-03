@@ -5,4 +5,4 @@ deps = [
   dependency('popt'),
 ]
 
-executable('shengloong', 'main.c', dependencies: deps)
+executable('shengloong', 'main.c', dependencies: deps, install: true)
