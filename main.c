@@ -46,7 +46,7 @@ struct sl_cfg {
 	bool dry_run;
 
 	const char *to_ver;
-	Elf64_Word to_vna_hash;
+	Elf64_Word to_elfhash;
 };
 
 static bool sl_cfg_is_ver_interesting(const struct sl_cfg *cfg, const char *ver)
@@ -118,6 +118,7 @@ static int sl_elf_patch_dynstr_by_idx(struct sl_elf_ctx *ctx, size_t idx, const 
 static int process(const struct sl_cfg *cfg, const char *path, int fd);
 static int process_elf(struct sl_elf_ctx *ctx);
 static int process_elf_dynsym(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
+static int process_elf_gnu_version_d(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
 static int process_elf_gnu_version_r(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
 
 // moves fd
@@ -191,6 +192,8 @@ static int process_elf(struct sl_elf_ctx *ctx)
 
 	Elf_Scn *s_dynsym = NULL;
 	size_t nr_dynsym = 0;
+	Elf_Scn *s_gnu_version_d = NULL;
+	size_t nr_gnu_version_d = 0;
 	Elf_Scn *s_gnu_version_r = NULL;
 	size_t nr_gnu_version_r = 0;
 	{
@@ -221,6 +224,11 @@ static int process_elf(struct sl_elf_ctx *ctx)
 			}
 			// we don't really need to check .gnu.version, because the
 			// versions referred to all come from here
+			if (!strncmp(".gnu.version_d", scn_name, 14)) {
+				s_gnu_version_d = scn;
+				nr_gnu_version_d = shdr.sh_info;
+				continue;
+			}
 			if (!strncmp(".gnu.version_r", scn_name, 14)) {
 				s_gnu_version_r = scn;
 				nr_gnu_version_r = shdr.sh_info;
@@ -229,8 +237,8 @@ static int process_elf(struct sl_elf_ctx *ctx)
 		}
 	}
 
-	if (s_dynsym) {
-		int ret = process_elf_dynsym(ctx, s_dynsym, nr_dynsym);
+	if (s_gnu_version_d) {
+		int ret = process_elf_gnu_version_d(ctx, s_gnu_version_d, nr_gnu_version_d);
 		if (ret) {
 			return ret;
 		}
@@ -238,6 +246,13 @@ static int process_elf(struct sl_elf_ctx *ctx)
 
 	if (s_gnu_version_r) {
 		int ret = process_elf_gnu_version_r(ctx, s_gnu_version_r, nr_gnu_version_r);
+		if (ret) {
+			return ret;
+		}
+	}
+
+	if (s_dynsym) {
+		int ret = process_elf_dynsym(ctx, s_dynsym, nr_dynsym);
 		if (ret) {
 			return ret;
 		}
@@ -305,6 +320,64 @@ next_sym:
 	return 0;
 }
 
+static int process_elf_gnu_version_d(
+	struct sl_elf_ctx *ctx,
+	Elf_Scn *s,
+	size_t n)
+{
+	size_t i = 0;
+	Elf_Data *d = NULL;
+	while (i < n && (d = elf_getdata(s, d)) != NULL) {
+		Elf64_Verdef *vd = (Elf64_Verdef *)(d->d_buf);
+		while (i < n) {
+			Elf64_Verdaux *aux = (Elf64_Verdaux *)((void *)vd + vd->vd_aux);
+
+			// only look at the first aux, because this aux is the vd's name
+			const char *vda_name_str = sl_elf_dynstr(ctx, aux->vda_name);
+			if (ctx->cfg->verbose >= 2) {
+				printf(
+					"%s: verdef %zd: %s\n",
+					ctx->path,
+					i,
+					vda_name_str
+				);
+			}
+
+			if (!sl_cfg_is_ver_interesting(ctx->cfg, vda_name_str)) {
+				goto next;
+			}
+
+			if (ctx->cfg->dry_run) {
+				printf(
+					"%s: verdef %zd: %s needs patching\n",
+					ctx->path,
+					i,
+					vda_name_str
+				);
+				goto next;
+			}
+
+			printf("%s: patching verdef %zd -> %s\n", ctx->path, i, ctx->cfg->to_ver);
+
+			// patch dynstr
+			int ret = sl_elf_patch_dynstr_by_idx(ctx, aux->vda_name, ctx->cfg->to_ver);
+			if (ret) {
+				return ret;
+			}
+
+			// patch hash
+			vd->vd_hash = ctx->cfg->to_elfhash;
+			elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
+
+next:
+			i++;
+			vd = (Elf64_Verdef *)((void *)vd + vd->vd_next);
+		}
+	}
+
+	return 0;
+}
+
 static int process_elf_gnu_version_r(
 	struct sl_elf_ctx *ctx,
 	Elf_Scn *s,
@@ -359,7 +432,7 @@ static int process_elf_gnu_version_r(
 				}
 
 				// patch hash
-				aux->vna_hash = ctx->cfg->to_vna_hash;
+				aux->vna_hash = ctx->cfg->to_elfhash;
 				elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
 			}
 
@@ -445,7 +518,7 @@ int main(int argc, const char *argv[])
 		.dry_run = false,
 
 		.to_ver = new_ver,
-		.to_vna_hash = bfd_elf_hash(new_ver),
+		.to_elfhash = bfd_elf_hash(new_ver),
 	};
 	global_cfg = cfg;
 
