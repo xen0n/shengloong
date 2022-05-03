@@ -14,11 +14,23 @@
 #define EM_LOONGARCH 258
 #endif
 
+static uint_fast32_t
+dl_new_hash (const char *s)
+{
+	uint_fast32_t h = 5381;
+	for (unsigned char c = *s; c != '\0'; c = *++s)
+		h = h * 33 + c;
+	return h & 0xffffffff;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
 struct sl_cfg {
 	int verbose;
 	bool dry_run;
 
 	const char *to_ver;
+	Elf64_Word to_vna_hash;
 };
 
 static bool sl_cfg_is_ver_interesting(const struct sl_cfg *cfg, const char *ver)
@@ -328,10 +340,16 @@ static int process_elf_gnu_version_r(
 					vna_name_str,
 					ctx->cfg->to_ver
 				);
+
+				// patch dynstr
 				int ret = sl_elf_patch_dynstr_by_off(ctx, aux->vna_name, ctx->cfg->to_ver);
 				if (ret) {
 					return ret;
 				}
+
+				// patch hash
+				aux->vna_hash = ctx->cfg->to_vna_hash;
+				elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
 			}
 
 			i++;
@@ -356,11 +374,13 @@ int main(int argc, const char *argv[])
 		return EX_USAGE;
 	}
 
+	const char *new_ver = "GLIBC_2.36";
 	struct sl_cfg cfg = {
 		.verbose = 1,
 		.dry_run = false,
 
-		.to_ver = "GLIBC_2.36",
+		.to_ver = new_ver,
+		.to_vna_hash = dl_new_hash(new_ver),
 	};
 
 	if (elf_version(EV_CURRENT) == EV_NONE) {
