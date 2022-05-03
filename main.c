@@ -1,5 +1,9 @@
+#define _XOPEN_SOURCE 500
+#define _GNU_SOURCE
+
 #include <err.h>
 #include <fcntl.h>
+#include <ftw.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -99,21 +103,16 @@ static int sl_elf_patch_dynstr_by_idx(struct sl_elf_ctx *ctx, size_t idx, const 
 
 /////////////////////////////////////////////////////////////////////////////
 
-static int process(const struct sl_cfg *cfg, const char *path);
+static int process(const struct sl_cfg *cfg, const char *path, int fd);
 static int process_elf(struct sl_elf_ctx *ctx);
 static int process_elf_dynsym(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
 static int process_elf_gnu_version_r(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
 
-static int process(const struct sl_cfg *cfg, const char *path)
+// moves fd
+static int process(const struct sl_cfg *cfg, const char *path, int fd)
 {
-	int fd;
 	Elf *e;
 	int ret = 0;
-
-	fd = open(path, cfg->dry_run ? O_RDONLY : O_RDWR, 0);
-	if (fd < 0) {
-		return EX_NOINPUT;
-	}
 
 	e = elf_begin(fd, cfg->dry_run ? ELF_C_READ_MMAP : ELF_C_RDWR_MMAP, NULL);
 	if (!e) {
@@ -360,15 +359,69 @@ static int process_elf_gnu_version_r(
 	return 0;
 }
 
+struct sl_cfg global_cfg;
+
+static int walk_fn(
+	const char *fpath,
+	const struct stat *sb,
+	int typeflag,
+	struct FTW *ftwbuf)
+{
+	if (typeflag != FTW_F) {
+		return FTW_CONTINUE;
+	}
+
+	if ((sb->st_mode & S_IFMT) != S_IFREG) {
+		// we're only interested in regular files
+		return FTW_CONTINUE;
+	}
+
+	if (sb->st_size < sizeof(Elf64_Ehdr)) {
+		// ELF files must be at least this large
+		return FTW_CONTINUE;
+	}
+
+	// check ELF magic bytes
+	int fd = open(fpath, global_cfg.dry_run ? O_RDONLY : O_RDWR, 0);
+	if (fd < 0) {
+		// open failed, should not happen
+		return FTW_STOP;
+	}
+
+	char magic[4];
+	ssize_t nr_read = 0;
+	while (nr_read < sizeof(magic)) {
+		ssize_t n = read(fd, magic + nr_read, sizeof(magic) - nr_read);
+		if (n < 0) {
+			// read failed
+			(void) close(fd);
+			return FTW_STOP;
+		}
+		nr_read += n;
+	}
+
+	if (strncmp(magic, ELFMAG, 4)) {
+		// not an ELF
+		return FTW_CONTINUE;
+	}
+
+	// fd is moved into process
+	int ret = process(&global_cfg, fpath, fd);
+	if (ret) {
+		return FTW_STOP;
+	}
+
+	return FTW_CONTINUE;
+}
+
 int main(int argc, const char *argv[])
 {
-	int i;
 	int ret;
 
-	if (argc < 2) {
+	if (argc != 2) {
 		fprintf(
 			stderr,
-			"usage: %s <list of elf files to patch>\n",
+			"usage: %s <sysroot>\n",
 			(argc > 0 && argv[0]) ? argv[0] : "shengloong"
 		);
 		return EX_USAGE;
@@ -382,17 +435,16 @@ int main(int argc, const char *argv[])
 		.to_ver = new_ver,
 		.to_vna_hash = dl_new_hash(new_ver),
 	};
+	global_cfg = cfg;
 
 	if (elf_version(EV_CURRENT) == EV_NONE) {
 		errx(EX_SOFTWARE, "libelf initialization failed: %s", elf_errmsg(-1));
 	}
 
-	for (i = 1; i < argc; i++) {
-		// TODO: non-dry-run
-		ret = process(&cfg, argv[i]);
-		if (ret) {
-			return ret;
-		}
+	const char *root_path = argv[1];
+	ret = nftw(root_path, &walk_fn, 100, FTW_ACTIONRETVAL | FTW_PHYS);
+	if (ret == FTW_STOP) {
+		return EX_SOFTWARE;
 	}
 
 	return 0;
