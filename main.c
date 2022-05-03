@@ -15,9 +15,19 @@
 #endif
 
 struct sl_cfg {
-	bool verbose;
+	int verbose;
 	bool dry_run;
+
+	const char *to_ver;
 };
+
+static bool sl_cfg_is_ver_interesting(const struct sl_cfg *cfg, const char *ver)
+{
+	// we're only interested in symbol versions like "GLIBC_2.xx"
+	return (strncmp("GLIBC_2.", ver, 8) == 0) && (strcmp(cfg->to_ver, ver) != 0);
+}
+
+/////////////////////////////////////////////////////////////////////////////
 
 struct sl_elf_ctx {
 	const struct sl_cfg *cfg;
@@ -29,20 +39,55 @@ struct sl_elf_ctx {
 	Elf_Data *dynstr_d;
 };
 
-static int process(const struct sl_cfg *cfg, const char *path);
-static int process_elf(struct sl_elf_ctx *ctx);
-static int process_elf_dynsym(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
-static int process_elf_gnu_version_r(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
-
-static const char *sl_elf_dynstr(struct sl_elf_ctx *ctx, size_t idx)
+static const char *sl_elf_dynstr(const struct sl_elf_ctx *ctx, size_t idx)
 {
 	return elf_strptr(ctx->e, ctx->dynstr, idx);
 }
 
-static const char *sl_elf_raw_dynstr(struct sl_elf_ctx *ctx, size_t off)
+static const char *sl_elf_raw_dynstr(const struct sl_elf_ctx *ctx, size_t off)
 {
 	return (const char *)(ctx->dynstr_d->d_buf + off);
 }
+
+static int sl_elf_patch_dynstr_by_off(struct sl_elf_ctx *ctx, size_t off, const char *newval)
+{
+	char *oldval = ctx->dynstr_d->d_buf + off;
+	size_t oldlen = strlen(oldval);
+	size_t newlen = strlen(newval);
+
+	// we cannot alter string's length at present, but this is not a problem
+	// as all strings we're interested in are like "GLIBC_2.xx"
+	if (oldlen != newlen) {
+		fprintf(
+			stderr,
+			"%s: cannot patch string with unequal lengths: attempted '%s' -> '%s'\n",
+			ctx->path,
+			oldval,
+			newval
+		);
+		return EX_DATAERR;
+	}
+
+	memmove(oldval, newval, newlen);
+	elf_flagdata(ctx->dynstr_d, ELF_C_SET, ELF_F_DIRTY);
+
+	return 0;
+}
+
+static int sl_elf_patch_dynstr_by_idx(struct sl_elf_ctx *ctx, size_t idx, const char *newval)
+{
+	// get the idx-th string's offset
+	const char *s = sl_elf_dynstr(ctx, idx);
+	size_t off = (size_t)((void *)s - ctx->dynstr_d->d_buf);
+	return sl_elf_patch_dynstr_by_off(ctx, off, newval);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+static int process(const struct sl_cfg *cfg, const char *path);
+static int process_elf(struct sl_elf_ctx *ctx);
+static int process_elf_dynsym(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
+static int process_elf_gnu_version_r(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
 
 static int process(const struct sl_cfg *cfg, const char *path)
 {
@@ -50,7 +95,7 @@ static int process(const struct sl_cfg *cfg, const char *path)
 	Elf *e;
 	int ret = 0;
 
-	fd = open(path, O_RDONLY, 0);
+	fd = open(path, cfg->dry_run ? O_RDONLY : O_RDWR, 0);
 	if (fd < 0) {
 		return EX_NOINPUT;
 	}
@@ -171,6 +216,13 @@ static int process_elf(struct sl_elf_ctx *ctx)
 		}
 	}
 
+	if (!ctx->cfg->dry_run) {
+		if (elf_update(e, ELF_C_WRITE) < 0) {
+			fprintf(stderr, "%s: elf_update failed: %s\n", ctx->path, elf_errmsg(-1));
+			return EX_SOFTWARE;
+		}
+	}
+
 	return 0;
 }
 
@@ -195,8 +247,24 @@ static int process_elf_dynsym(
 				goto next_sym;
 			}
 
-			if (ctx->cfg->verbose) {
-				printf("%s: announced symbol version %s at idx %zd\n", ctx->path, sl_elf_dynstr(ctx, sym->st_name), i);
+			const char *ver_name = sl_elf_dynstr(ctx, sym->st_name);
+			if (ctx->cfg->verbose >= 2) {
+				printf("%s: announced symbol version %s at idx %zd\n", ctx->path, ver_name, i);
+			}
+
+			if (!sl_cfg_is_ver_interesting(ctx->cfg, ver_name)) {
+				goto next_sym;
+			}
+
+			if (ctx->cfg->dry_run) {
+				printf("%s: symbol version %s at idx %zd needs patching\n", ctx->path, ver_name, i);
+				goto next_sym;
+			}
+
+			printf("%s: patching symbol version %s at idx %zd -> %s\n", ctx->path, ver_name, i, ctx->cfg->to_ver);
+			int ret = sl_elf_patch_dynstr_by_idx(ctx, sym->st_name, ctx->cfg->to_ver);
+			if (ret) {
+				return ret;
 			}
 
 next_sym:
@@ -218,7 +286,7 @@ static int process_elf_gnu_version_r(
 	while (i < n && (d = elf_getdata(s, d)) != NULL) {
 		Elf64_Verneed *vn = (Elf64_Verneed *)(d->d_buf);
 		while (i < n) {
-			if (ctx->cfg->verbose) {
+			if (ctx->cfg->verbose >= 2) {
 				const char *dep_filename = sl_elf_raw_dynstr(ctx, vn->vn_file);
 				printf("%s: verneed %zd: depending on %s\n", ctx->path, i, dep_filename);
 			}
@@ -227,8 +295,38 @@ static int process_elf_gnu_version_r(
 			Elf64_Vernaux *aux = (Elf64_Vernaux *)((void *)vn + vn->vn_aux);
 			for (j = 0; j < vn->vn_cnt; j++, aux = (Elf64_Vernaux *)((void *)aux + aux->vna_next)) {
 				const char *vna_name_str = sl_elf_raw_dynstr(ctx, aux->vna_name);
-				printf("%s: verneed %zd: aux %zd name %s\n", ctx->path, i, j, vna_name_str);
-			};
+				if (ctx->cfg->verbose >= 2) {
+					printf("%s: verneed %zd: aux %zd name %s\n", ctx->path, i, j, vna_name_str);
+				}
+
+				if (!sl_cfg_is_ver_interesting(ctx->cfg, vna_name_str)) {
+					continue;
+				}
+
+				if (ctx->cfg->dry_run) {
+					printf(
+						"%s: verneed %zd: aux %zd name %s needs patching\n",
+						ctx->path,
+						i,
+						j,
+						vna_name_str
+					);
+					continue;
+				}
+
+				printf(
+					"%s: patching verneed %zd aux %zd %s -> %s\n",
+					ctx->path,
+					i,
+					j,
+					vna_name_str,
+					ctx->cfg->to_ver
+				);
+				int ret = sl_elf_patch_dynstr_by_off(ctx, aux->vna_name, ctx->cfg->to_ver);
+				if (ret) {
+					return ret;
+				}
+			}
 
 			i++;
 			vn = (Elf64_Verneed *)((void *)vn + vn->vn_next);
@@ -253,8 +351,10 @@ int main(int argc, const char *argv[])
 	}
 
 	struct sl_cfg cfg = {
-		.verbose = true,
-		.dry_run = true,
+		.verbose = 1,
+		.dry_run = false,
+
+		.to_ver = "GLIBC_2.36",
 	};
 
 	if (elf_version(EV_CURRENT) == EV_NONE) {
