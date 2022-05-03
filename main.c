@@ -6,6 +6,7 @@
 #include <ftw.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
@@ -13,6 +14,7 @@
 #include <elf.h>
 #include <gelf.h>
 #include <libelf.h>
+#include <popt.h>
 
 #ifndef EM_LOONGARCH
 #define EM_LOONGARCH 258
@@ -55,7 +57,7 @@ static bool endswith(const char *s, const char *pattern, size_t n)
 
 struct sl_cfg {
 	int verbose;
-	bool dry_run;
+	int dry_run;
 
 	const char *from_ver;
 	const char *to_ver;
@@ -344,7 +346,7 @@ static int process_elf_dynsym(
 			}
 
 			const char *ver_name = sl_elf_dynstr(ctx, sym->st_name);
-			if (ctx->cfg->verbose >= 2) {
+			if (ctx->cfg->verbose) {
 				printf("%s: announced symbol version %s at idx %zd\n", ctx->path, ver_name, i);
 			}
 
@@ -386,7 +388,7 @@ static int process_elf_gnu_version_d(
 
 			// only look at the first aux, because this aux is the vd's name
 			const char *vda_name_str = sl_elf_dynstr(ctx, aux->vda_name);
-			if (ctx->cfg->verbose >= 2) {
+			if (ctx->cfg->verbose) {
 				printf(
 					"%s: verdef %zd: %s\n",
 					ctx->path,
@@ -443,7 +445,7 @@ static int process_elf_gnu_version_r(
 	while (i < n && (d = elf_getdata(s, d)) != NULL) {
 		Elf64_Verneed *vn = (Elf64_Verneed *)(d->d_buf);
 		while (i < n) {
-			if (ctx->cfg->verbose >= 2) {
+			if (ctx->cfg->verbose) {
 				const char *dep_filename = sl_elf_raw_dynstr(ctx, vn->vn_file);
 				printf("%s: verneed %zd: depending on %s\n", ctx->path, i, dep_filename);
 			}
@@ -452,7 +454,7 @@ static int process_elf_gnu_version_r(
 			Elf64_Vernaux *aux = (Elf64_Vernaux *)((void *)vn + vn->vn_aux);
 			for (j = 0; j < vn->vn_cnt; j++, aux = (Elf64_Vernaux *)((void *)aux + aux->vna_next)) {
 				const char *vna_name_str = sl_elf_raw_dynstr(ctx, aux->vna_name);
-				if (ctx->cfg->verbose >= 2) {
+				if (ctx->cfg->verbose) {
 					printf("%s: verneed %zd: aux %zd name %s\n", ctx->path, i, j, vna_name_str);
 				}
 
@@ -739,38 +741,79 @@ static int process_dir(const char *root)
 
 /////////////////////////////////////////////////////////////////////////////
 
+static void
+__attribute__((noreturn))
+usage(poptContext pctx, int exitcode, const char *error)
+{
+	poptPrintUsage(pctx, stderr, 0);
+	if (error) {
+		fprintf(stderr, "%s\n", error);
+	}
+	exit(exitcode);
+}
+
+#define DEFAULT_FROM "GLIBC_2.35"
+#define DEFAULT_TO "GLIBC_2.36"
+
 int main(int argc, const char *argv[])
 {
-	if (argc != 2) {
-		fprintf(
-			stderr,
-			"usage: %s <sysroot>\n",
-			(argc > 0 && argv[0]) ? argv[0] : "shengloong"
-		);
-		return EX_USAGE;
-	}
-
-	const char *from_ver = "GLIBC_2.35";
-	const char *new_ver = "GLIBC_2.36";
 	struct sl_cfg cfg = {
-		.verbose = 1,
+		.verbose = false,
 		.dry_run = false,
 
-		.from_ver = from_ver,
-		.to_ver = new_ver,
-		.from_elfhash = bfd_elf_hash(from_ver),
-		.to_elfhash = bfd_elf_hash(new_ver),
+		.from_ver = DEFAULT_FROM,
+		.to_ver = DEFAULT_TO,
 	};
+
+	struct poptOption options[] = {
+		{ "verbose", 'v', POPT_ARG_NONE, &cfg.verbose, 0, "produce more (debugging) output", NULL },
+		{ "pretend", 'p', POPT_ARG_NONE, &cfg.dry_run, 0, "don't actually patch the files", NULL },
+		{ "from-ver", 'f', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cfg.from_ver, 0, "migrate from this glibc symbol version", "GLIBC_2.3x" },
+		{ "to-ver", 't', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cfg.to_ver, 0, "migrate to this glibc symbol version", "GLIBC_2.3y" },
+		POPT_AUTOHELP
+		POPT_TABLEEND
+	};
+
+	poptContext pctx = poptGetContext(NULL, argc, argv, options, 0);
+	poptSetOtherOptionHelp(pctx, "<root dirs>");
+	if (argc < 2) {
+		poptPrintUsage(pctx, stderr, 0);
+		exit(EX_USAGE);
+	}
+
+	int ret = poptGetNextOpt(pctx);
+	if (ret < -1) {
+		fprintf(
+			stderr,
+			"%s: %s\n",
+			poptBadOption(pctx, POPT_BADOPTION_NOALIAS),
+			poptStrerror(ret)
+		);
+		exit(EX_USAGE);
+	}
+
+	if (poptPeekArg(pctx) == NULL) {
+		usage(pctx, EX_USAGE, "at least one directory argument is required");
+	}
+
+	cfg.from_elfhash = bfd_elf_hash(cfg.from_ver);
+	cfg.to_elfhash = bfd_elf_hash(cfg.to_ver);
+
 	global_cfg = cfg;
 
 	if (elf_version(EV_CURRENT) == EV_NONE) {
 		errx(EX_SOFTWARE, "libelf initialization failed: %s", elf_errmsg(-1));
 	}
 
-	int ret = process_dir(argv[1]);
-	if (ret) {
-		return ret;
+	const char *dir;
+	while ((dir = poptGetArg(pctx)) != NULL) {
+		ret = process_dir(dir);
+		if (ret) {
+			return ret;
+		}
 	}
+
+	poptFreeContext(pctx);
 
 	return 0;
 }
