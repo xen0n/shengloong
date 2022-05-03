@@ -1,4 +1,4 @@
-# 昇龍 (Shénglóng)
+# 昇龍 (Shēnglóng; ShengLoong)
 
 **昇龍** upgrades your LoongArch system with outdated glibc symbol version *in-place*,
 to a newer symbol version, so you don't have to re-install from scratch.
