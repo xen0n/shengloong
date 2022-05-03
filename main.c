@@ -52,7 +52,7 @@ struct sl_cfg {
 static bool sl_cfg_is_ver_interesting(const struct sl_cfg *cfg, const char *ver)
 {
 	// we're only interested in symbol versions like "GLIBC_2.3x"
-	return (strncmp("GLIBC_2.3", ver, 9) == 0) && (strcmp(cfg->to_ver, ver) != 0);
+	return strncmp("GLIBC_2.3", ver, 9) == 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -96,6 +96,11 @@ static int sl_elf_patch_dynstr_by_off(struct sl_elf_ctx *ctx, size_t off, const 
 			newval
 		);
 		return EX_DATAERR;
+	}
+
+	// maintain idempotence to reduce work
+	if (!strncmp(oldval, newval, newlen)) {
+		return 0;
 	}
 
 	ctx->dirty = true;
@@ -434,6 +439,7 @@ static int process_elf_gnu_version_r(
 				// patch hash
 				aux->vna_hash = ctx->cfg->to_elfhash;
 				elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
+				elf_flagscn(s, ELF_C_SET, ELF_F_DIRTY);
 			}
 
 			i++;
