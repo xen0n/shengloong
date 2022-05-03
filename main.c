@@ -39,6 +39,18 @@ static unsigned long bfd_elf_hash (const char *namearg)
 	return h & 0xffffffff;
 }
 
+
+static bool endswith(const char *s, const char *pattern, size_t n)
+{
+	size_t l = strlen(s);
+	if (l < n) {
+		return false;
+	}
+
+	s += l - n;
+	return strncmp(s, pattern, n) == 0;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 
 struct sl_cfg {
@@ -125,6 +137,7 @@ static int process_elf(struct sl_elf_ctx *ctx);
 static int process_elf_dynsym(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
 static int process_elf_gnu_version_d(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
 static int process_elf_gnu_version_r(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
+static int patch_ldso_rodata(struct sl_elf_ctx *ctx, Elf_Scn *s);
 
 // moves fd
 static int process(const struct sl_cfg *cfg, const char *path, int fd)
@@ -190,6 +203,9 @@ static int process_elf(struct sl_elf_ctx *ctx)
 		return 0;
 	}
 
+	bool is_ldso = endswith(ctx->path, "ld-linux-loongarch-lp64d.so.1", 29);
+	bool needs_rodata_patching = is_ldso;
+
 	size_t shstrndx;
 	if (elf_getshdrstrndx(e, &shstrndx) != 0) {
 		return EX_SOFTWARE;
@@ -201,6 +217,7 @@ static int process_elf(struct sl_elf_ctx *ctx)
 	size_t nr_gnu_version_d = 0;
 	Elf_Scn *s_gnu_version_r = NULL;
 	size_t nr_gnu_version_r = 0;
+	Elf_Scn *s_rodata = NULL;
 	{
 		Elf_Scn *scn = NULL;
 		size_t i = 0;  // section idx, 0 is naturally skipped
@@ -225,6 +242,10 @@ static int process_elf(struct sl_elf_ctx *ctx)
 			if (!strncmp(".dynsym", scn_name, 7)) {
 				s_dynsym = scn;
 				nr_dynsym = shdr.sh_size;
+				continue;
+			}
+			if (needs_rodata_patching && !strncmp(".rodata", scn_name, 7)) {
+				s_rodata = scn;
 				continue;
 			}
 			// we don't really need to check .gnu.version, because the
@@ -258,6 +279,13 @@ static int process_elf(struct sl_elf_ctx *ctx)
 
 	if (s_dynsym) {
 		int ret = process_elf_dynsym(ctx, s_dynsym, nr_dynsym);
+		if (ret) {
+			return ret;
+		}
+	}
+
+	if (needs_rodata_patching && s_rodata) {
+		int ret = patch_ldso_rodata(ctx, s_rodata);
 		if (ret) {
 			return ret;
 		}
@@ -371,8 +399,11 @@ static int process_elf_gnu_version_d(
 			}
 
 			// patch hash
-			vd->vd_hash = ctx->cfg->to_elfhash;
-			elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
+			if (vd->vd_hash != ctx->cfg->to_elfhash) {
+				vd->vd_hash = ctx->cfg->to_elfhash;
+				elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
+				ctx->dirty = true;
+			}
 
 next:
 			i++;
@@ -437,13 +468,71 @@ static int process_elf_gnu_version_r(
 				}
 
 				// patch hash
-				aux->vna_hash = ctx->cfg->to_elfhash;
-				elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
-				elf_flagscn(s, ELF_C_SET, ELF_F_DIRTY);
+				if (aux->vna_hash != ctx->cfg->to_elfhash) {
+					aux->vna_hash = ctx->cfg->to_elfhash;
+					elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
+					elf_flagscn(s, ELF_C_SET, ELF_F_DIRTY);
+					ctx->dirty = true;
+				}
 			}
 
 			i++;
 			vn = (Elf64_Verneed *)((void *)vn + vn->vn_next);
+		}
+	}
+
+	return 0;
+}
+
+static int patch_ldso_rodata(struct sl_elf_ctx *ctx, Elf_Scn *s)
+{
+	Elf_Data *d = NULL;
+	while ((d = elf_getdata(s, d)) != NULL) {
+		void *curr = d->d_buf;
+		size_t remaining = d->d_size;
+
+		while (remaining > 0) {
+			// search for "\0GLIBC_2.3x\0"
+			// there should be only one reference
+			void *p = memmem(curr, remaining, "\x00GLIBC_2.3", 10);
+			if (p == NULL) {
+				break;
+			}
+
+			remaining -= (p - curr) + 10;
+			curr = p + 10;
+
+			char *version_tag = p + 1;
+			if (strlen(version_tag) != 10) {
+				continue;
+			}
+
+			if (!strcmp(version_tag, ctx->cfg->to_ver)) {
+				// idempotence
+				continue;
+			}
+
+			if (ctx->cfg->dry_run) {
+				printf(
+					"%s: hard-coded symbol version in .rodata: %s (offset %zd) needs patching\n",
+					ctx->path,
+					version_tag,
+					(void *)version_tag - d->d_buf
+				);
+				continue;
+			}
+
+			// patch
+			printf(
+				"%s: patching hard-coded symbol version in .rodata: %s (offset %zd) -> %s\n",
+				ctx->path,
+				version_tag,
+				(void *)version_tag - d->d_buf,
+				ctx->cfg->to_ver
+			);
+			memmove(version_tag, ctx->cfg->to_ver, 10);
+			elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
+			ctx->dirty = true;
 		}
 	}
 
