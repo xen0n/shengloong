@@ -5,13 +5,15 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+#include <elf.h>
+#include <gelf.h>
 #include <libelf.h>
 
 #ifndef EM_LOONGARCH
 #define EM_LOONGARCH 258
 #endif
 
-static int process_elf(Elf *e, bool dry_run);
+static int process_elf(const char *path, Elf *e, bool dry_run);
 static int process(const char *path, bool dry_run);
 
 static int process(const char *path, bool dry_run)
@@ -33,7 +35,7 @@ static int process(const char *path, bool dry_run)
 
 	switch (elf_kind(e)) {
 	case ELF_K_ELF:
-		ret = process_elf(e, dry_run);
+		ret = process_elf(path, e, dry_run);
 		break;
 
 	default:
@@ -54,13 +56,10 @@ close:
 	return EX_SOFTWARE;
 }
 
-static int process_elf(Elf *e, bool dry_run)
+static int process_elf(const char *path, Elf *e, bool dry_run)
 {
 	size_t len;
-	const char *ident;
-	Elf64_Ehdr *ehdr;
-
-	ident = elf_getident(e, &len);
+	const char *ident = elf_getident(e, &len);
 	if (len != EI_NIDENT) {
 		return EX_SOFTWARE;
 	}
@@ -70,17 +69,32 @@ static int process_elf(Elf *e, bool dry_run)
 		return 0;
 	}
 
-	ehdr = elf64_getehdr(e);
-
-	// debug
-	printf("e_machine = %d\n", ehdr->e_machine);
+	Elf64_Ehdr *ehdr = elf64_getehdr(e);
 
 	// only process LoongArch files
 	if (ehdr->e_machine != EM_LOONGARCH) {
 		return 0;
 	}
 
-	printf("xxx\n");
+	size_t shstrndx;
+	if (elf_getshdrstrndx(e, &shstrndx) != 0) {
+		return EX_SOFTWARE;
+	}
+
+	Elf_Scn *scn = NULL;
+	while ((scn = elf_nextscn(e, scn)) != NULL) {
+		GElf_Shdr shdr;
+		if (gelf_getshdr(scn, &shdr) != &shdr) {
+			return EX_SOFTWARE;
+		}
+
+		const char *scn_name;
+		if ((scn_name = elf_strptr(e, shstrndx, shdr.sh_name)) == NULL) {
+			return EX_SOFTWARE;
+		}
+
+		(void) printf("%s: section %s\n", path, scn_name);
+	}
 
 	return 0;
 }
