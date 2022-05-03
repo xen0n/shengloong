@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
 
@@ -81,20 +82,41 @@ static int process_elf(const char *path, Elf *e, bool dry_run)
 		return EX_SOFTWARE;
 	}
 
-	Elf_Scn *scn = NULL;
-	while ((scn = elf_nextscn(e, scn)) != NULL) {
-		GElf_Shdr shdr;
-		if (gelf_getshdr(scn, &shdr) != &shdr) {
-			return EX_SOFTWARE;
-		}
+	Elf_Scn *s_dynsym = NULL;
+	Elf_Scn *s_gnu_version = NULL;
+	Elf_Scn *s_gnu_version_r = NULL;
+	{
+		Elf_Scn *scn = NULL;
+		while ((scn = elf_nextscn(e, scn)) != NULL) {
+			GElf_Shdr shdr;
+			if (gelf_getshdr(scn, &shdr) != &shdr) {
+				return EX_SOFTWARE;
+			}
 
-		const char *scn_name;
-		if ((scn_name = elf_strptr(e, shstrndx, shdr.sh_name)) == NULL) {
-			return EX_SOFTWARE;
-		}
+			const char *scn_name;
+			if ((scn_name = elf_strptr(e, shstrndx, shdr.sh_name)) == NULL) {
+				return EX_SOFTWARE;
+			}
 
-		(void) printf("%s: section %s\n", path, scn_name);
+			if (!strncmp(".dynsym", scn_name, 7)) {
+				s_dynsym = scn;
+				continue;
+			}
+			// this must come first because .gnu.version is prefix of this
+			if (!strncmp(".gnu.version_r", scn_name, 14)) {
+				s_gnu_version_r = scn;
+				continue;
+			}
+			if (!strncmp(".gnu.version", scn_name, 12)) {
+				s_gnu_version = scn;
+				continue;
+			}
+		}
 	}
+
+	(void) printf("%s: .dynsym        at %p\n", path, s_dynsym);
+	(void) printf("%s: .gnu.version   at %p\n", path, s_gnu_version);
+	(void) printf("%s: .gnu.version_r at %p\n", path, s_gnu_version_r);
 
 	return 0;
 }
