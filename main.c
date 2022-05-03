@@ -32,16 +32,15 @@ static int process(const char *path, bool dry_run)
 	}
 
 	switch (elf_kind(e)) {
-	case ELF_K_AR:
-		// TODO
-		break;
-
 	case ELF_K_ELF:
 		ret = process_elf(e, dry_run);
 		break;
 
 	default:
 		// not handled
+		// specifically, ar(1) archives don't need patching, as the expected
+		// usage of this program is to patch sysroot then re-emerge world,
+		// so static libraries get properly rebuilt
 		break;
 	}
 
