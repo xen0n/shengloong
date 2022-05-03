@@ -26,15 +26,22 @@ struct sl_elf_ctx {
 	Elf *e;
 
 	size_t dynstr;
+	Elf_Data *dynstr_d;
 };
 
 static int process(const struct sl_cfg *cfg, const char *path);
 static int process_elf(struct sl_elf_ctx *ctx);
 static int process_elf_dynsym(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
+static int process_elf_gnu_version_r(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
 
 static const char *sl_elf_dynstr(struct sl_elf_ctx *ctx, size_t idx)
 {
 	return elf_strptr(ctx->e, ctx->dynstr, idx);
+}
+
+static const char *sl_elf_raw_dynstr(struct sl_elf_ctx *ctx, size_t off)
+{
+	return (const char *)(ctx->dynstr_d->d_buf + off);
 }
 
 static int process(const struct sl_cfg *cfg, const char *path)
@@ -112,8 +119,6 @@ static int process_elf(struct sl_elf_ctx *ctx)
 
 	Elf_Scn *s_dynsym = NULL;
 	size_t nr_dynsym = 0;
-	Elf_Scn *s_gnu_version = NULL;
-	size_t nr_gnu_version = 0;
 	Elf_Scn *s_gnu_version_r = NULL;
 	size_t nr_gnu_version_r = 0;
 	{
@@ -134,6 +139,7 @@ static int process_elf(struct sl_elf_ctx *ctx)
 
 			if (!strncmp(".dynstr", scn_name, 7)) {
 				ctx->dynstr = i;
+				ctx->dynstr_d = elf_getdata(scn, NULL);
 				continue;
 			}
 			if (!strncmp(".dynsym", scn_name, 7)) {
@@ -141,15 +147,11 @@ static int process_elf(struct sl_elf_ctx *ctx)
 				nr_dynsym = shdr.sh_size;
 				continue;
 			}
-			// this must come first because .gnu.version is prefix of this
+			// we don't really need to check .gnu.version, because the
+			// versions referred to all come from here
 			if (!strncmp(".gnu.version_r", scn_name, 14)) {
 				s_gnu_version_r = scn;
-				nr_gnu_version_r = shdr.sh_size;
-				continue;
-			}
-			if (!strncmp(".gnu.version", scn_name, 12)) {
-				s_gnu_version = scn;
-				nr_gnu_version = shdr.sh_size;
+				nr_gnu_version_r = shdr.sh_info;
 				continue;
 			}
 		}
@@ -162,9 +164,11 @@ static int process_elf(struct sl_elf_ctx *ctx)
 		}
 	}
 
-	if (ctx->cfg->verbose) {
-		(void) printf("%s: .gnu.version   at %p (%zd entries)\n", ctx->path, s_gnu_version, nr_gnu_version);
-		(void) printf("%s: .gnu.version_r at %p (%zd entries)\n", ctx->path, s_gnu_version_r, nr_gnu_version_r);
+	if (s_gnu_version_r) {
+		int ret = process_elf_gnu_version_r(ctx, s_gnu_version_r, nr_gnu_version_r);
+		if (ret) {
+			return ret;
+		}
 	}
 
 	return 0;
@@ -198,6 +202,36 @@ static int process_elf_dynsym(
 next_sym:
 			i++;
 			sym++;
+		}
+	}
+
+	return 0;
+}
+
+static int process_elf_gnu_version_r(
+	struct sl_elf_ctx *ctx,
+	Elf_Scn *s,
+	size_t n)
+{
+	size_t i = 0;
+	Elf_Data *d = NULL;
+	while (i < n && (d = elf_getdata(s, d)) != NULL) {
+		Elf64_Verneed *vn = (Elf64_Verneed *)(d->d_buf);
+		while (i < n) {
+			if (ctx->cfg->verbose) {
+				const char *dep_filename = sl_elf_raw_dynstr(ctx, vn->vn_file);
+				printf("%s: verneed %zd: depending on %s\n", ctx->path, i, dep_filename);
+			}
+
+			size_t j = 0;
+			Elf64_Vernaux *aux = (Elf64_Vernaux *)((void *)vn + vn->vn_aux);
+			for (j = 0; j < vn->vn_cnt; j++, aux = (Elf64_Vernaux *)((void *)aux + aux->vna_next)) {
+				const char *vna_name_str = sl_elf_raw_dynstr(ctx, aux->vna_name);
+				printf("%s: verneed %zd: aux %zd name %s\n", ctx->path, i, j, vna_name_str);
+			};
+
+			i++;
+			vn = (Elf64_Verneed *)((void *)vn + vn->vn_next);
 		}
 	}
 
