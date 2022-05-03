@@ -18,12 +18,24 @@
 #define EM_LOONGARCH 258
 #endif
 
-static uint_fast32_t
-dl_new_hash (const char *s)
+/////////////////////////////////////////////////////////////////////////////
+
+static unsigned long bfd_elf_hash (const char *namearg)
 {
-	uint_fast32_t h = 5381;
-	for (unsigned char c = *s; c != '\0'; c = *++s)
-		h = h * 33 + c;
+	const unsigned char *name = (const unsigned char *) namearg;
+	unsigned long h = 0;
+	unsigned long g;
+	int ch;
+
+	while ((ch = *name++) != '\0') {
+		h = (h << 4) + ch;
+		if ((g = (h & 0xf0000000)) != 0) {
+			h ^= g >> 24;
+			/* The ELF ABI says `h &= ~g', but this is equivalent in
+			   this case and on some machines one insn instead of two.  */
+			h ^= g;
+		}
+	}
 	return h & 0xffffffff;
 }
 
@@ -39,8 +51,8 @@ struct sl_cfg {
 
 static bool sl_cfg_is_ver_interesting(const struct sl_cfg *cfg, const char *ver)
 {
-	// we're only interested in symbol versions like "GLIBC_2.xx"
-	return (strncmp("GLIBC_2.", ver, 8) == 0) && (strcmp(cfg->to_ver, ver) != 0);
+	// we're only interested in symbol versions like "GLIBC_2.3x"
+	return (strncmp("GLIBC_2.3", ver, 9) == 0) && (strcmp(cfg->to_ver, ver) != 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -433,7 +445,7 @@ int main(int argc, const char *argv[])
 		.dry_run = false,
 
 		.to_ver = new_ver,
-		.to_vna_hash = dl_new_hash(new_ver),
+		.to_vna_hash = bfd_elf_hash(new_ver),
 	};
 	global_cfg = cfg;
 
