@@ -727,10 +727,20 @@ static int walk_fn(
 	return FTW_CONTINUE;
 }
 
+static int process_dir(const char *root)
+{
+	int ret = nftw(root, &walk_fn, 100, FTW_ACTIONRETVAL | FTW_PHYS);
+	if (ret == FTW_STOP) {
+		return EX_SOFTWARE;
+	}
+
+	return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
 int main(int argc, const char *argv[])
 {
-	int ret;
-
 	if (argc != 2) {
 		fprintf(
 			stderr,
@@ -757,10 +767,9 @@ int main(int argc, const char *argv[])
 		errx(EX_SOFTWARE, "libelf initialization failed: %s", elf_errmsg(-1));
 	}
 
-	const char *root_path = argv[1];
-	ret = nftw(root_path, &walk_fn, 100, FTW_ACTIONRETVAL | FTW_PHYS);
-	if (ret == FTW_STOP) {
-		return EX_SOFTWARE;
+	int ret = process_dir(argv[1]);
+	if (ret) {
+		return ret;
 	}
 
 	return 0;
