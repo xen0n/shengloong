@@ -78,4 +78,16 @@ info "should now be able to run upgraded $old_symver binary in the old sysroot"
 run_loong_binary_at_sysroot "$workdir_old" bin/test.old || dief 'assertion failed'
 echo
 
+info 'update the programs in new sysroot'
+"$sl_prog" -f "GLIBC_$old_symver" -t "GLIBC_$new_symver" -v "$workdir_new/bin" || dief 'shengloong failed'
+echo
+
+info "should now be able to run upgraded $old_symver binary in the new sysroot"
+run_loong_binary_at_sysroot "$workdir_new" bin/test.old || dief 'assertion failed'
+echo
+
+info "$new_symver binary in the new sysroot shouldn't get broken"
+run_loong_binary_at_sysroot "$workdir_new" bin/test.new || dief 'assertion failed'
+echo
+
 info 'all passed!'
