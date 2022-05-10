@@ -11,7 +11,7 @@ static int walk_fn(
 	const char *fpath,
 	const struct stat *sb,
 	int typeflag,
-	struct FTW *ftwbuf)
+	struct FTW *ftwbuf __attribute__((unused)))
 {
 	if (typeflag != FTW_F) {
 		return FTW_CONTINUE;
@@ -22,7 +22,7 @@ static int walk_fn(
 		return FTW_CONTINUE;
 	}
 
-	if (sb->st_size < sizeof(Elf64_Ehdr)) {
+	if ((size_t)sb->st_size < sizeof(Elf64_Ehdr)) {
 		// ELF files must be at least this large
 		return FTW_CONTINUE;
 	}
@@ -35,7 +35,7 @@ static int walk_fn(
 	}
 
 	char magic[4];
-	ssize_t nr_read = 0;
+	size_t nr_read = 0;
 	while (nr_read < sizeof(magic)) {
 		ssize_t n = read(fd, magic + nr_read, sizeof(magic) - nr_read);
 		if (n < 0) {
@@ -43,7 +43,7 @@ static int walk_fn(
 			(void) close(fd);
 			return FTW_STOP;
 		}
-		nr_read += n;
+		nr_read += (size_t)n;
 	}
 
 	if (strncmp(magic, ELFMAG, 4)) {

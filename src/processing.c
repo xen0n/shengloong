@@ -204,7 +204,7 @@ static int process_elf_dynsym(
 	Elf_Data *d = NULL;
 	while (i < n && (d = elf_getdata(s, d)) != NULL) {
 		Elf64_Sym *sym = (Elf64_Sym *)(d->d_buf);
-		while ((void *)sym < (d->d_buf + d->d_size)) {
+		while ((void *)sym < (void *)((uint8_t *)d->d_buf + d->d_size)) {
 			if (ELF64_ST_TYPE(sym->st_info) != STT_OBJECT) {
 				// STT_FUNC names are stored without version information,
 				// so only look at STT_OBJECT symbols
@@ -255,7 +255,7 @@ static int process_elf_gnu_version_d(
 	while (i < n && (d = elf_getdata(s, d)) != NULL) {
 		Elf64_Verdef *vd = (Elf64_Verdef *)(d->d_buf);
 		while (i < n) {
-			Elf64_Verdaux *aux = (Elf64_Verdaux *)((void *)vd + vd->vd_aux);
+			Elf64_Verdaux *aux = (Elf64_Verdaux *)((uint8_t *)vd + vd->vd_aux);
 
 			// only look at the first aux, because this aux is the vd's name
 			const char *vda_name_str = sl_elf_dynstr(ctx, aux->vda_name);
@@ -299,7 +299,7 @@ static int process_elf_gnu_version_d(
 
 next:
 			i++;
-			vd = (Elf64_Verdef *)((void *)vd + vd->vd_next);
+			vd = (Elf64_Verdef *)((uint8_t *)vd + vd->vd_next);
 		}
 	}
 
@@ -322,8 +322,8 @@ static int process_elf_gnu_version_r(
 			}
 
 			size_t j = 0;
-			Elf64_Vernaux *aux = (Elf64_Vernaux *)((void *)vn + vn->vn_aux);
-			for (j = 0; j < vn->vn_cnt; j++, aux = (Elf64_Vernaux *)((void *)aux + aux->vna_next)) {
+			Elf64_Vernaux *aux = (Elf64_Vernaux *)((uint8_t *)vn + vn->vn_aux);
+			for (j = 0; j < vn->vn_cnt; j++, aux = (Elf64_Vernaux *)((uint8_t *)aux + aux->vna_next)) {
 				const char *vna_name_str = sl_elf_raw_dynstr(ctx, aux->vna_name);
 				if (ctx->cfg->verbose) {
 					printf("%s: verneed %zd: aux %zd name %s\n", ctx->path, i, j, vna_name_str);
@@ -369,7 +369,7 @@ static int process_elf_gnu_version_r(
 			}
 
 			i++;
-			vn = (Elf64_Verneed *)((void *)vn + vn->vn_next);
+			vn = (Elf64_Verneed *)((uint8_t *)vn + vn->vn_next);
 		}
 	}
 

@@ -11,12 +11,12 @@ const char *sl_elf_dynstr(const struct sl_elf_ctx *ctx, size_t idx)
 
 const char *sl_elf_raw_dynstr(const struct sl_elf_ctx *ctx, size_t off)
 {
-	return (const char *)(ctx->dynstr_d->d_buf + off);
+	return (const char *)((char *)ctx->dynstr_d->d_buf + off);
 }
 
 int sl_elf_patch_dynstr_by_off(struct sl_elf_ctx *ctx, size_t off, const char *newval)
 {
-	char *oldval = ctx->dynstr_d->d_buf + off;
+	char *oldval = (char *)ctx->dynstr_d->d_buf + off;
 	size_t oldlen = strlen(oldval);
 	size_t newlen = strlen(newval);
 
@@ -49,6 +49,6 @@ int sl_elf_patch_dynstr_by_idx(struct sl_elf_ctx *ctx, size_t idx, const char *n
 {
 	// get the idx-th string's offset
 	const char *s = sl_elf_dynstr(ctx, idx);
-	size_t off = (size_t)((void *)s - ctx->dynstr_d->d_buf);
+	size_t off = (size_t)(s - (char *)ctx->dynstr_d->d_buf);
 	return sl_elf_patch_dynstr_by_off(ctx, off, newval);
 }

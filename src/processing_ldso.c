@@ -10,13 +10,13 @@ int patch_ldso_rodata(struct sl_elf_ctx *ctx, Elf_Scn *s)
 {
 	Elf_Data *d = NULL;
 	while ((d = elf_getdata(s, d)) != NULL) {
-		void *curr = d->d_buf;
+		char *curr = d->d_buf;
 		size_t remaining = d->d_size;
 
 		while (remaining > 0) {
 			// search for "\0GLIBC_2.3x\0"
 			// there should be only one reference
-			void *p = memmem(curr, remaining, "\x00GLIBC_2.3", 10);
+			char *p = memmem(curr, remaining, "\x00GLIBC_2.3", 10);
 			if (p == NULL) {
 				break;
 			}
@@ -39,7 +39,7 @@ int patch_ldso_rodata(struct sl_elf_ctx *ctx, Elf_Scn *s)
 					"%s: hard-coded symbol version in .rodata: %s (offset %zd) needs patching\n",
 					ctx->path,
 					version_tag,
-					(void *)version_tag - d->d_buf
+					version_tag - (char *)d->d_buf
 				);
 				continue;
 			}
@@ -49,7 +49,7 @@ int patch_ldso_rodata(struct sl_elf_ctx *ctx, Elf_Scn *s)
 				"%s: patching hard-coded symbol version in .rodata: %s (offset %zd) -> %s\n",
 				ctx->path,
 				version_tag,
-				(void *)version_tag - d->d_buf,
+				version_tag - (char *)d->d_buf,
 				ctx->cfg->to_ver
 			);
 			memmove(version_tag, ctx->cfg->to_ver, 10);
@@ -81,7 +81,7 @@ static bool is_clobbering_rd(uint32_t insn, int rd)
 {
 	// XXX not exact -- correct solution would require properly disassembling,
 	// hence complete opcode info
-	return (insn & 0x1f) == rd;
+	return (insn & 0x1f) == (uint32_t)rd;
 }
 
 static uint32_t patch_dsj20_imm(uint32_t old_insn, uint32_t new_imm)
@@ -105,7 +105,7 @@ int patch_ldso_text_hashes(struct sl_elf_ctx *ctx, Elf_Scn *s)
 	Elf_Data *d = NULL;
 	while ((d = elf_getdata(s, d)) != NULL) {
 		uint32_t *p = d->d_buf;
-		uint32_t *end = (uint32_t *)(d->d_buf + d->d_size);
+		uint32_t *end = (uint32_t *)((uint8_t *)d->d_buf + d->d_size);
 
 		uint32_t *hi20_insn = NULL;
 		int reg = 0;
@@ -128,8 +128,8 @@ int patch_ldso_text_hashes(struct sl_elf_ctx *ctx, Elf_Scn *s)
 					printf(
 						"%s: old hash in .text needs patching: lu12i.w offset %zd, ori offset %zd\n",
 						ctx->path,
-						(void *)hi20_insn - d->d_buf,
-						(void *)p - d->d_buf
+						(uint8_t *)hi20_insn - (uint8_t *)d->d_buf,
+						(uint8_t *)p - (uint8_t *)d->d_buf
 					);
 					goto reset_state;
 				}
@@ -141,10 +141,10 @@ int patch_ldso_text_hashes(struct sl_elf_ctx *ctx, Elf_Scn *s)
 				printf(
 					"%s: patching old hash in .text: lu12i.w offset %zd %08x -> %08x, ori offset %zd %08x -> %08x\n",
 					ctx->path,
-					(void *)hi20_insn - d->d_buf,
+					(uint8_t *)hi20_insn - (uint8_t *)d->d_buf,
 					*hi20_insn,
 					new_lu12i_w,
-					(void *)p - d->d_buf,
+					(uint8_t *)p - (uint8_t *)d->d_buf,
 					*p,
 					new_ori
 				);
