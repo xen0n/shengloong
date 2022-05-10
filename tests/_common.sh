@@ -78,3 +78,14 @@ run_loong_binary_at_sysroot() {
 	echo "note: install qemu-loongarch64 or use native hardware" >&2
 	exit 77
 }
+
+assert_sha256sum() {
+	local expected="$1"
+	local filename="$2"
+
+	local output="$(sha256sum "$filename")"
+	output="${output:0:64}"
+	if [[ $expected != $output ]]; then
+		dief 'sha256sum assertion failed for %s: expected %s, got %s' "$filename" "$expected" "$output"
+	fi
+}
