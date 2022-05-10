@@ -23,8 +23,10 @@ int process(const struct sl_cfg *cfg, const char *path, int fd)
 
 	e = elf_begin(fd, cfg->dry_run ? ELF_C_READ_MMAP : ELF_C_RDWR_MMAP, NULL);
 	if (!e) {
+		// GCOVR_EXCL_START: excessively unlikely to happen
 		fprintf(stderr, "elf_begin on %s (fd %d) failed: %s\n", path, fd, elf_errmsg(-1));
 		goto close;
+		// GCOVR_EXCL_STOP
 	}
 
 	struct sl_elf_ctx ctx = {
@@ -40,11 +42,13 @@ int process(const struct sl_cfg *cfg, const char *path, int fd)
 		break;
 
 	default:
-		// not handled
+		// currently impossible to reach, due to early checking of ELF magic
+		// during directorywalking
+		//
 		// specifically, ar(1) archives don't need patching, as the expected
 		// usage of this program is to patch sysroot then re-emerge world,
 		// so static libraries get properly rebuilt
-		break;
+		__builtin_unreachable();  // GCOVR_EXCL_LINE
 	}
 
 	(void) elf_end(e);
@@ -52,9 +56,11 @@ int process(const struct sl_cfg *cfg, const char *path, int fd)
 
 	return ret;
 
+	// GCOVR_EXCL_START: excessively unlikely to happen
 close:
 	(void) close(fd);
 	return EX_SOFTWARE;
+	// GCOVR_EXCL_STOP
 }
 
 static int process_elf(struct sl_elf_ctx *ctx)
@@ -64,7 +70,7 @@ static int process_elf(struct sl_elf_ctx *ctx)
 	size_t len;
 	const char *ident = elf_getident(e, &len);
 	if (len != EI_NIDENT) {
-		return EX_SOFTWARE;
+		return EX_SOFTWARE;  // GCOVR_EXCL_LINE: virtually impossible
 	}
 
 	// only process ELF64 files for now
@@ -102,12 +108,12 @@ static int process_elf(struct sl_elf_ctx *ctx)
 
 			GElf_Shdr shdr;
 			if (gelf_getshdr(scn, &shdr) != &shdr) {
-				return EX_SOFTWARE;
+				return EX_SOFTWARE;  // GCOVR_EXCL_LINE: virtually impossible
 			}
 
 			const char *scn_name;
 			if ((scn_name = elf_strptr(e, shstrndx, shdr.sh_name)) == NULL) {
-				return EX_SOFTWARE;
+				return EX_SOFTWARE;  // GCOVR_EXCL_LINE: virtually impossible
 			}
 
 			if (!strncmp(".dynstr", scn_name, 7)) {
@@ -149,21 +155,21 @@ static int process_elf(struct sl_elf_ctx *ctx)
 	if (s_gnu_version_d) {
 		int ret = process_elf_gnu_version_d(ctx, s_gnu_version_d, nr_gnu_version_d);
 		if (ret) {
-			return ret;
+			return ret;  // GCOVR_EXCL_LINE: unlikely because no I/O is involved
 		}
 	}
 
 	if (s_gnu_version_r) {
 		int ret = process_elf_gnu_version_r(ctx, s_gnu_version_r, nr_gnu_version_r);
 		if (ret) {
-			return ret;
+			return ret;  // GCOVR_EXCL_LINE: unlikely because no I/O is involved
 		}
 	}
 
 	if (s_dynsym) {
 		int ret = process_elf_dynsym(ctx, s_dynsym, nr_dynsym);
 		if (ret) {
-			return ret;
+			return ret;  // GCOVR_EXCL_LINE: unlikely because no I/O is involved
 		}
 	}
 
@@ -171,14 +177,14 @@ static int process_elf(struct sl_elf_ctx *ctx)
 		if (s_rodata) {
 			int ret = patch_ldso_rodata(ctx, s_rodata);
 			if (ret) {
-				return ret;
+				return ret;  // GCOVR_EXCL_LINE: unlikely because no I/O is involved
 			}
 		}
 
 		if (s_text) {
 			int ret = patch_ldso_text_hashes(ctx, s_text);
 			if (ret) {
-				return ret;
+				return ret;  // GCOVR_EXCL_LINE: unlikely because no I/O is involved
 			}
 		}
 	}

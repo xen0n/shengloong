@@ -83,7 +83,7 @@ int main(int argc, const char *argv[])
 	global_cfg = cfg;
 
 	if (elf_version(EV_CURRENT) == EV_NONE) {
-		errx(EX_SOFTWARE, "libelf initialization failed: %s", elf_errmsg(-1));
+		errx(EX_SOFTWARE, "libelf initialization failed: %s", elf_errmsg(-1));  // GCOVR_EXCL_LINE: impossible branch
 	}
 
 	const char *dir;
