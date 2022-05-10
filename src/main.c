@@ -59,8 +59,7 @@ int main(int argc, const char *argv[])
 	poptContext pctx = poptGetContext(NULL, argc, argv, options, 0);
 	poptSetOtherOptionHelp(pctx, "<root dirs>");
 	if (argc < 2) {
-		poptPrintUsage(pctx, stderr, 0);
-		exit(EX_USAGE);
+		usage(pctx, EX_USAGE, NULL);
 	}
 
 	int ret = poptGetNextOpt(pctx);
