@@ -29,6 +29,7 @@ executable(
   'processing.c',
   'processing_ldso.c',
   'utils.c',
+  'walkdir.c',
 
   dependencies: deps,
   install: true,

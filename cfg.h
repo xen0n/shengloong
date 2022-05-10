@@ -15,6 +15,8 @@ struct sl_cfg {
 	Elf64_Word to_elfhash;
 };
 
+extern struct sl_cfg global_cfg;
+
 bool sl_cfg_is_ver_interesting(const struct sl_cfg *cfg, const char *ver);
 
 #endif  // _shengloong_cfg_h
