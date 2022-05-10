@@ -57,3 +57,10 @@ test(
   depends: [sl],
   suite: 'e2e',
 )
+test(
+  'e2e-walk',
+  find_program('./tests/e2e-walk/runtest.sh'),
+  args: [sl],
+  depends: [sl],
+  suite: 'e2e',
+)
