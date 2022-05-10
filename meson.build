@@ -23,13 +23,13 @@ add_project_arguments(cflags, language: 'c')
 executable(
   'shengloong',
 
-  'cfg.c',
-  'ctx.c',
-  'main.c',
-  'processing.c',
-  'processing_ldso.c',
-  'utils.c',
-  'walkdir.c',
+  'src/cfg.c',
+  'src/ctx.c',
+  'src/main.c',
+  'src/processing.c',
+  'src/processing_ldso.c',
+  'src/utils.c',
+  'src/walkdir.c',
 
   dependencies: deps,
   install: true,
