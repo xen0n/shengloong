@@ -22,12 +22,12 @@ int process(const struct sl_cfg *cfg, const char *path, int fd)
 	int ret = 0;
 
 	e = elf_begin(fd, cfg->dry_run ? ELF_C_READ_MMAP : ELF_C_RDWR_MMAP, NULL);
+	// GCOVR_EXCL_START: excessively unlikely to happen
 	if (!e) {
-		// GCOVR_EXCL_START: excessively unlikely to happen
 		fprintf(stderr, "elf_begin on %s (fd %d) failed: %s\n", path, fd, elf_errmsg(-1));
 		goto close;
-		// GCOVR_EXCL_STOP
 	}
+	// GCOVR_EXCL_STOP
 
 	struct sl_elf_ctx ctx = {
 		.cfg = cfg,
@@ -41,6 +41,7 @@ int process(const struct sl_cfg *cfg, const char *path, int fd)
 		ret = process_elf(&ctx);
 		break;
 
+	// GCOVR_EXCL_START
 	default:
 		// currently impossible to reach, due to early checking of ELF magic
 		// during directorywalking
@@ -48,7 +49,8 @@ int process(const struct sl_cfg *cfg, const char *path, int fd)
 		// specifically, ar(1) archives don't need patching, as the expected
 		// usage of this program is to patch sysroot then re-emerge world,
 		// so static libraries get properly rebuilt
-		__builtin_unreachable();  // GCOVR_EXCL_LINE
+		__builtin_unreachable();
+		// GCOVR_EXCL_STOP
 	}
 
 	(void) elf_end(e);
@@ -69,9 +71,11 @@ static int process_elf(struct sl_elf_ctx *ctx)
 
 	size_t len;
 	const char *ident = elf_getident(e, &len);
+	// GCOVR_EXCL_START: virtually impossible
 	if (len != EI_NIDENT) {
-		return EX_SOFTWARE;  // GCOVR_EXCL_LINE: virtually impossible
+		return EX_SOFTWARE;
 	}
+	// GCOVR_EXCL_STOP
 
 	// only process ELF64 files for now
 	if (ident[EI_CLASS] != ELFCLASS64) {
@@ -154,38 +158,48 @@ static int process_elf(struct sl_elf_ctx *ctx)
 
 	if (s_gnu_version_d) {
 		int ret = process_elf_gnu_version_d(ctx, s_gnu_version_d, nr_gnu_version_d);
+		// GCOVR_EXCL_START: unlikely because no I/O is involved
 		if (ret) {
-			return ret;  // GCOVR_EXCL_LINE: unlikely because no I/O is involved
+			return ret;
 		}
+		// GCOVR_EXCL_STOP
 	}
 
 	if (s_gnu_version_r) {
 		int ret = process_elf_gnu_version_r(ctx, s_gnu_version_r, nr_gnu_version_r);
+		// GCOVR_EXCL_START: unlikely because no I/O is involved
 		if (ret) {
-			return ret;  // GCOVR_EXCL_LINE: unlikely because no I/O is involved
+			return ret;
 		}
+		// GCOVR_EXCL_STOP
 	}
 
 	if (s_dynsym) {
 		int ret = process_elf_dynsym(ctx, s_dynsym, nr_dynsym);
+		// GCOVR_EXCL_START: unlikely because no I/O is involved
 		if (ret) {
-			return ret;  // GCOVR_EXCL_LINE: unlikely because no I/O is involved
+			return ret;
 		}
+		// GCOVR_EXCL_STOP
 	}
 
 	if (is_ldso) {
 		if (s_rodata) {
 			int ret = patch_ldso_rodata(ctx, s_rodata);
+			// GCOVR_EXCL_START: unlikely because no I/O is involved
 			if (ret) {
-				return ret;  // GCOVR_EXCL_LINE: unlikely because no I/O is involved
+				return ret;
 			}
+			// GCOVR_EXCL_STOP
 		}
 
 		if (s_text) {
 			int ret = patch_ldso_text_hashes(ctx, s_text);
+			// GCOVR_EXCL_START: unlikely because no I/O is involved
 			if (ret) {
-				return ret;  // GCOVR_EXCL_LINE: unlikely because no I/O is involved
+				return ret;
 			}
+			// GCOVR_EXCL_STOP
 		}
 	}
 
