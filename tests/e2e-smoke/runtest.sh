@@ -59,6 +59,7 @@ if [[ $CI == true ]]; then
 	# were to become popular enough to be available in GitHub Actions, the
 	# ecosystem would have long matured, and that includes stable glibc
 	# symver, making this project's existence unnecessary in the first place.)
+	info "detected CI environment, only doing checksumming"
 	should_run_progs=false
 else
 	info "sanity test: can run $old_symver binary in $old_symver sysroot"
