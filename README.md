@@ -1,5 +1,9 @@
 # 昇龍 (Shēnglóng; ShengLoong)
 
+![GitHub branch checks state](https://img.shields.io/github/checks-status/xen0n/shengloong/develop)
+![Codecov](https://img.shields.io/codecov/c/gh/xen0n/shengloong)
+![GitHub license info](https://img.shields.io/github/license/xen0n/shengloong)
+
 **昇龍** upgrades your LoongArch system with outdated glibc symbol version *in-place*,
 to a newer symbol version, so you don't have to re-install from scratch.
 For everyone else this is pretty much useless.
