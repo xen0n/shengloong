@@ -21,9 +21,18 @@ trap cleanup EXIT
 dbgf 'setting up workdir'
 cp -r "$mydir"/*.a "$mydir"/*.bin "$workdir" || dief 'cp failed'
 
+# now for some fun: cycles!
+pushd "$workdir" > /dev/null || dief 'pushd failed'
+	mkdir a b c d || dief 'mkdir failed'
+	ln -s ../b ./a/next || dief 'symlink failed'
+	ln -s ../c ./b/next || dief 'symlink failed'
+	ln -s ../a ./c/next || dief 'symlink failed'
+	ln -s . ./d/self || dief 'symlink failed'
+popd > /dev/null || dief 'popd failed'
+
 info 'dry-running on /dev for lots of special files'
-"$sl_prog" -p /dev || dief 'should pass'
-echo
+"$sl_prog" -p /dev
+echo "retcode = $?; passes on some systems while failing on others, that's fine"
 
 info 'dry-running on /sys for unreadable and special files'
 "$sl_prog" -p /sys && dief 'should fail due to unreadable files'
