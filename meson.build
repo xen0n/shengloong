@@ -20,7 +20,7 @@ cflags = [
 ]
 add_project_arguments(cflags, language: 'c')
 
-executable(
+sl = executable(
   'shengloong',
 
   'src/cfg.c',
@@ -33,4 +33,13 @@ executable(
 
   dependencies: deps,
   install: true,
+)
+
+# Tests
+test(
+  'e2e-smoke',
+  find_program('./tests/e2e-smoke/runtest.sh'),
+  args: [sl],
+  depends: [sl],
+  suite: 'e2e',
 )
