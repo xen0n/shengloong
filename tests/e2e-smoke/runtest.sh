@@ -51,11 +51,22 @@ cp "$test_prog_new" "$workdir_new/bin/test.new" || dief 'cp failed'
 # checksums, if the sanity check fails. Unexpected outputs can still be caught
 # this way.
 should_run_progs=true
-info "sanity test: can run $old_symver binary in $old_symver sysroot"
-if ! run_loong_binary_at_sysroot "$workdir_old" bin/test.old; then
-	info 'cannot run old-symver binary with matching sysroot, we might be in a Gentoo sandbox'
-	info 'falling back to checksumming only'
+
+if [[ $CI == true ]]; then
+	# don't attempt to run LoongArch binaries on CI, due to no qemu binary
+	# package readily available, and no native LoongArch CI boxes in the
+	# foreseeable future (when this project is still relevant; *if* LoongArch
+	# were to become popular enough to be available in GitHub Actions, the
+	# ecosystem would have long matured, and that includes stable glibc
+	# symver, making this project's existence unnecessary in the first place.)
 	should_run_progs=false
+else
+	info "sanity test: can run $old_symver binary in $old_symver sysroot"
+	if ! run_loong_binary_at_sysroot "$workdir_old" bin/test.old; then
+		info 'cannot run old-symver binary with matching sysroot, we might be in a Gentoo sandbox'
+		info 'falling back to checksumming only'
+		should_run_progs=false
+	fi
 fi
 
 if "$should_run_progs"; then
