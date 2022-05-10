@@ -5,10 +5,14 @@ on:
     paths:
       - "**.c"
       - "**.h"
+      - "meson.build"
+      - "tests/**"
   pull_request:
     paths:
       - "**.c"
       - "**.h"
+      - "meson.build"
+      - "tests/**"
 
 jobs:
   linux:
