@@ -25,7 +25,7 @@ jobs:
         python-version: '3.x'
 
     - name: Install dependencies
-      run: sudo apt-get install -y libelf-dev libpopt-dev meson ninja
+      run: sudo apt-get install -y libelf-dev libpopt-dev meson ninja-build
 
     - name: Configure
       run: meson setup builddir/
