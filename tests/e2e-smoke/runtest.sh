@@ -84,6 +84,10 @@ if "$should_run_progs"; then
 	echo
 fi
 
+info 'test dry-run on the old sysroot'
+"$sl_prog" -f "GLIBC_$old_symver" -t "GLIBC_$new_symver" -p "$workdir_old" || dief 'shengloong failed'
+echo
+
 info 'update the old sysroot (this time only libs)'
 "$sl_prog" -f "GLIBC_$old_symver" -t "GLIBC_$new_symver" -v "$workdir_old/lib64" || dief 'shengloong failed'
 echo
