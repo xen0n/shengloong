@@ -1,13 +1,14 @@
 #!/bin/bash
 
-# target shengloong executable to test is passed in argv[1]
-sl_prog="$(realpath "$1")"
-if [[ $? -ne 0 ]]; then
-	dief 'please run the test with `meson test`'
-fi
-
 mydir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$mydir/../_common.sh"
+
+if [[ $# -ne 1 ]]; then
+	dief 'usage: %s <target shengloong executable to test>' "$0"
+fi
+
+# target shengloong executable to test is passed in argv[1]
+sl_prog="$(realpath "$1")"
 
 old_symver=2.35
 new_symver=2.36
