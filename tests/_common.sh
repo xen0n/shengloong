@@ -67,7 +67,7 @@ run_loong_binary_at_sysroot() {
 	# static; emulator is not copied into sysroot)
 	if "$_common_tool_dir/try-loong"; then
 		pushd "$sysroot" > /dev/null || dief 'cannot pushd into %s' "$sysroot"
-			LD_LIBRARY_PATH="$sysroot/lib64" dbgrun "$sysroot/$prog" "$@"
+			dbgrun "./lib64/ld-linux-loongarch-lp64d.so.1" --library-path ./lib64 "./$prog" "$@"
 			ret=$?
 		popd > /dev/null || dief 'cannot popd'
 		return $ret
