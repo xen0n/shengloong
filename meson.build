@@ -37,6 +37,13 @@ sl = executable(
 
 # Tests
 test(
+  'e2e-cli',
+  find_program('./tests/e2e-cli.sh'),
+  args: [sl],
+  depends: [sl],
+  suite: 'e2e',
+)
+test(
   'e2e-ignores',
   find_program('./tests/e2e-ignores/runtest.sh'),
   args: [sl],
