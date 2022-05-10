@@ -3,12 +3,14 @@ name: meson
 on:
   push:
     paths:
+      - ".github/workflows/meson.yml"
       - "**.c"
       - "**.h"
       - "meson.build"
       - "tests/**"
   pull_request:
     paths:
+      - ".github/workflows/meson.yml"
       - "**.c"
       - "**.h"
       - "meson.build"
