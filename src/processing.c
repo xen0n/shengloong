@@ -126,35 +126,35 @@ static int process_elf(struct sl_elf_ctx *ctx)
 				return EX_SOFTWARE;  // GCOVR_EXCL_LINE: virtually impossible
 			}
 
-			if (!strncmp(".dynstr", scn_name, 7)) {
+			if (!strcmp(".dynstr", scn_name)) {
 				ctx->dynstr = i;
 				ctx->dynstr_d = elf_getdata(scn, NULL);
 				continue;
 			}
-			if (!strncmp(".dynsym", scn_name, 7)) {
+			if (!strcmp(".dynsym", scn_name)) {
 				s_dynsym = scn;
 				nr_dynsym = shdr.sh_size;
 				continue;
 			}
 			// we don't really need to check .gnu.version, because the
 			// versions referred to all come from here
-			if (!strncmp(".gnu.version_d", scn_name, 14)) {
+			if (!strcmp(".gnu.version_d", scn_name)) {
 				s_gnu_version_d = scn;
 				nr_gnu_version_d = shdr.sh_info;
 				continue;
 			}
-			if (!strncmp(".gnu.version_r", scn_name, 14)) {
+			if (!strcmp(".gnu.version_r", scn_name)) {
 				s_gnu_version_r = scn;
 				nr_gnu_version_r = shdr.sh_info;
 				continue;
 			}
 
 			if (is_ldso) {
-				if (!strncmp(".rodata", scn_name, 7)) {
+				if (!strcmp(".rodata", scn_name)) {
 					s_rodata = scn;
 					continue;
 				}
-				if (!strncmp(".text", scn_name, 5)) {
+				if (!strcmp(".text", scn_name)) {
 					s_text = scn;
 					continue;
 				}
