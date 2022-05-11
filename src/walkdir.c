@@ -43,7 +43,17 @@ static int walk_fn(
 			(void) close(fd);
 			return FTW_STOP;
 		}
+		if (n == 0) {
+			// cannot get more data; will happen on special files such as some
+			// pseudo files from /sys
+			break;
+		}
 		nr_read += (size_t)n;
+	}
+
+	if (nr_read < sizeof(magic)) {
+		// definitely not an ELF
+		return FTW_CONTINUE;
 	}
 
 	if (strncmp(magic, ELFMAG, 4)) {

@@ -1,0 +1,47 @@
+name: meson
+
+on:
+  push:
+    paths:
+      - ".github/workflows/meson.yml"
+      - "**.c"
+      - "**.h"
+      - "meson.build"
+      - "tests/**"
+  pull_request:
+    paths:
+      - ".github/workflows/meson.yml"
+      - "**.c"
+      - "**.h"
+      - "meson.build"
+      - "tests/**"
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: sudo apt-get install -y libelf-dev libpopt-dev meson ninja-build gcovr curl
+
+    - name: Configure
+      run: meson setup builddir/ -Db_coverage=true
+      env:
+        CC: gcc
+
+    - name: Test
+      run: meson test -C builddir/ -v
+
+    - name: Generate and upload coverage
+      run: ninja -C builddir/ coverage-xml && bash <(curl -s https://codecov.io/bash)
+
+    - uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: meson-testlog
+        path: builddir/meson-logs/testlog.txt

@@ -25,13 +25,13 @@ struct sl_cfg global_cfg;
 
 static void
 __attribute__((noreturn))
-usage(poptContext pctx, int exitcode, const char *error)
+usage(poptContext pctx, const char *error)
 {
 	poptPrintUsage(pctx, stderr, 0);
 	if (error) {
 		fprintf(stderr, "%s\n", error);
 	}
-	exit(exitcode);
+	exit(EX_USAGE);
 }
 
 #define DEFAULT_FROM "GLIBC_2.35"
@@ -59,8 +59,7 @@ int main(int argc, const char *argv[])
 	poptContext pctx = poptGetContext(NULL, argc, argv, options, 0);
 	poptSetOtherOptionHelp(pctx, "<root dirs>");
 	if (argc < 2) {
-		poptPrintUsage(pctx, stderr, 0);
-		exit(EX_USAGE);
+		usage(pctx, NULL);
 	}
 
 	int ret = poptGetNextOpt(pctx);
@@ -75,7 +74,7 @@ int main(int argc, const char *argv[])
 	}
 
 	if (poptPeekArg(pctx) == NULL) {
-		usage(pctx, EX_USAGE, "at least one directory argument is required");
+		usage(pctx, "at least one directory argument is required");
 	}
 
 	cfg.from_elfhash = bfd_elf_hash(cfg.from_ver);
@@ -84,7 +83,7 @@ int main(int argc, const char *argv[])
 	global_cfg = cfg;
 
 	if (elf_version(EV_CURRENT) == EV_NONE) {
-		errx(EX_SOFTWARE, "libelf initialization failed: %s", elf_errmsg(-1));
+		errx(EX_SOFTWARE, "libelf initialization failed: %s", elf_errmsg(-1));  // GCOVR_EXCL_LINE: impossible branch
 	}
 
 	const char *dir;

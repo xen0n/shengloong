@@ -1,7 +1,7 @@
 project(
   'shengloong',
   'c',
-  version: '0.1.2',
+  version: '0.1.3',
   license: 'GPL-3.0-or-later',
   default_options: [
     'c_std=c99',
@@ -37,8 +37,29 @@ sl = executable(
 
 # Tests
 test(
+  'e2e-cli',
+  find_program('./tests/e2e-cli.sh'),
+  args: [sl],
+  depends: [sl],
+  suite: 'e2e',
+)
+test(
+  'e2e-ignores',
+  find_program('./tests/e2e-ignores/runtest.sh'),
+  args: [sl],
+  depends: [sl],
+  suite: 'e2e',
+)
+test(
   'e2e-smoke',
   find_program('./tests/e2e-smoke/runtest.sh'),
+  args: [sl],
+  depends: [sl],
+  suite: 'e2e',
+)
+test(
+  'e2e-walk',
+  find_program('./tests/e2e-walk/runtest.sh'),
   args: [sl],
   depends: [sl],
   suite: 'e2e',
