@@ -61,10 +61,11 @@ The executable should be available at `<builddir>/shengloong`.
 
 ## Usage
 
-**昇龍** can be used to migrate LoongArch sysroots from *any little-endian architecture*,
-not just limited to native operation. As atomic replacing of files is not yet
-implemented, currently you have to reboot into another system for migrating
-your existing sysroot. (This is planned for the next minor version.)
+**昇龍** can be used to migrate LoongArch sysroots from *any architecture*, not
+just limited to native operation.
+As atomic replacing of files is not yet implemented, currently you have to
+reboot into another system for migrating your existing sysroot.
+(This is planned for the next minor version.)
 
 **Warning**. This program has no warranty, like almost every free software.
 

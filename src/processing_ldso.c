@@ -1,3 +1,4 @@
+#include <endian.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -110,19 +111,21 @@ int patch_ldso_text_hashes(struct sl_elf_ctx *ctx, Elf_Scn *s)
 		uint32_t *hi20_insn = NULL;
 		int reg = 0;
 		for (; p < end; p++) {
+			uint32_t insn_word = le32toh(*p);
+
 			if (hi20_insn == NULL) {
 				// find first lu12i.w
-				if (!is_lu12i_w_with_imm(*p, old_hash_hi20)) {
+				if (!is_lu12i_w_with_imm(insn_word, old_hash_hi20)) {
 					continue;
 				}
 
 				hi20_insn = p;
-				reg = (*p) & 0x1f;
+				reg = insn_word & 0x1f;
 				continue;
 			}
 
 			// find matching ori
-			if (is_ori_exact(*p, reg, reg, old_hash_lo12)) {
+			if (is_ori_exact(insn_word, reg, reg, old_hash_lo12)) {
 				// found an immediate load of old hash
 				if (ctx->cfg->dry_run) {
 					printf(
@@ -149,8 +152,8 @@ int patch_ldso_text_hashes(struct sl_elf_ctx *ctx, Elf_Scn *s)
 					new_ori
 				);
 
-				*hi20_insn = new_lu12i_w;
-				*p = new_ori;
+				*hi20_insn = htole32(new_lu12i_w);
+				*p = htole32(new_ori);
 				elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
 
 				goto reset_state;
@@ -158,7 +161,7 @@ int patch_ldso_text_hashes(struct sl_elf_ctx *ctx, Elf_Scn *s)
 
 			// if rd becomes clobbered, then restart matching lu12i.w,
 			// otherwise keep searching for that ori
-			if (is_clobbering_rd(*p, reg)) {
+			if (is_clobbering_rd(insn_word, reg)) {
 				goto reset_state;
 			}
 
