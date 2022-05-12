@@ -160,6 +160,7 @@ int patch_ldso_text_hashes(struct sl_elf_ctx *ctx, Elf_Scn *s)
 				*hi20_insn = htole32(new_lu12i_w);
 				*p = htole32(new_ori);
 				elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
+				ctx->dirty = true;
 
 				goto reset_state;
 			}
