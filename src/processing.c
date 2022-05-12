@@ -210,6 +210,8 @@ static int process_elf(struct sl_elf_ctx *ctx)
 	}
 
 	if (!ctx->cfg->dry_run && ctx->dirty) {
+		printf("%s %s\n", ctx->cfg->verbose ? "writing" : "patching", ctx->path);
+
 		// don't alter preexisting layout
 		elf_flagelf(e, ELF_C_SET, ELF_F_LAYOUT);
 		if (elf_update(e, ELF_C_WRITE_MMAP) < 0) {
@@ -244,9 +246,6 @@ static int process_elf_dynsym(
 
 			Elf64_Word st_name = le32toh(sym->st_name);
 			const char *ver_name = sl_elf_dynstr(ctx, st_name);
-			if (ctx->cfg->verbose) {
-				printf("%s: announced symbol version %s at idx %zd\n", ctx->path, ver_name, i);
-			}
 
 			if (!sl_cfg_is_ver_interesting(ctx->cfg, ver_name)) {
 				goto next_sym;
@@ -257,7 +256,10 @@ static int process_elf_dynsym(
 				goto next_sym;
 			}
 
-			printf("%s: patching symbol version %s at idx %zd -> %s\n", ctx->path, ver_name, i, ctx->cfg->to_ver);
+			if (ctx->cfg->verbose) {
+				printf("%s: patching symbol version %s at idx %zd -> %s\n", ctx->path, ver_name, i, ctx->cfg->to_ver);
+			}
+
 			int ret = sl_elf_patch_dynstr_by_idx(ctx, st_name, ctx->cfg->to_ver);
 			if (ret) {
 				return ret;
@@ -287,14 +289,6 @@ static int process_elf_gnu_version_d(
 			// only look at the first aux, because this aux is the vd's name
 			Elf64_Word vda_name = le32toh(aux->vda_name);
 			const char *vda_name_str = sl_elf_dynstr(ctx, vda_name);
-			if (ctx->cfg->verbose) {
-				printf(
-					"%s: verdef %zd: %s\n",
-					ctx->path,
-					i,
-					vda_name_str
-				);
-			}
 
 			if (!sl_cfg_is_ver_interesting(ctx->cfg, vda_name_str)) {
 				goto next;
@@ -310,7 +304,9 @@ static int process_elf_gnu_version_d(
 				goto next;
 			}
 
-			printf("%s: patching verdef %zd -> %s\n", ctx->path, i, ctx->cfg->to_ver);
+			if (ctx->cfg->verbose) {
+				printf("%s: patching verdef %zd -> %s\n", ctx->path, i, ctx->cfg->to_ver);
+			}
 
 			// patch dynstr
 			int ret = sl_elf_patch_dynstr_by_idx(ctx, vda_name, ctx->cfg->to_ver);
@@ -344,19 +340,11 @@ static int process_elf_gnu_version_r(
 	while (i < n && (d = elf_getdata(s, d)) != NULL) {
 		Elf64_Verneed *vn = (Elf64_Verneed *)(d->d_buf);
 		while (i < n) {
-			if (ctx->cfg->verbose) {
-				const char *dep_filename = sl_elf_raw_dynstr(ctx, le32toh(vn->vn_file));
-				printf("%s: verneed %zd: depending on %s\n", ctx->path, i, dep_filename);
-			}
-
 			size_t j = 0;
 			Elf64_Vernaux *aux = (Elf64_Vernaux *)((uint8_t *)vn + le32toh(vn->vn_aux));
 			for (j = 0; j < vn->vn_cnt; j++, aux = (Elf64_Vernaux *)((uint8_t *)aux + le32toh(aux->vna_next))) {
 				Elf64_Word vna_name = le32toh(aux->vna_name);
 				const char *vna_name_str = sl_elf_raw_dynstr(ctx, vna_name);
-				if (ctx->cfg->verbose) {
-					printf("%s: verneed %zd: aux %zd name %s\n", ctx->path, i, j, vna_name_str);
-				}
 
 				if (!sl_cfg_is_ver_interesting(ctx->cfg, vna_name_str)) {
 					continue;
@@ -373,14 +361,16 @@ static int process_elf_gnu_version_r(
 					continue;
 				}
 
-				printf(
-					"%s: patching verneed %zd aux %zd %s -> %s\n",
-					ctx->path,
-					i,
-					j,
-					vna_name_str,
-					ctx->cfg->to_ver
-				);
+				if (ctx->cfg->verbose) {
+					printf(
+						"%s: patching verneed %zd aux %zd %s -> %s\n",
+						ctx->path,
+						i,
+						j,
+						vna_name_str,
+						ctx->cfg->to_ver
+					);
+				}
 
 				// patch dynstr
 				int ret = sl_elf_patch_dynstr_by_off(ctx, vna_name, ctx->cfg->to_ver);

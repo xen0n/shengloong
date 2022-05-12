@@ -45,14 +45,17 @@ int patch_ldso_rodata(struct sl_elf_ctx *ctx, Elf_Scn *s)
 				continue;
 			}
 
+			if (ctx->cfg->verbose) {
+				printf(
+					"%s: patching hard-coded symbol version in .rodata: %s (offset %zd) -> %s\n",
+					ctx->path,
+					version_tag,
+					version_tag - (char *)d->d_buf,
+					ctx->cfg->to_ver
+				);
+			}
+
 			// patch
-			printf(
-				"%s: patching hard-coded symbol version in .rodata: %s (offset %zd) -> %s\n",
-				ctx->path,
-				version_tag,
-				version_tag - (char *)d->d_buf,
-				ctx->cfg->to_ver
-			);
 			memmove(version_tag, ctx->cfg->to_ver, 10);
 			elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
 			ctx->dirty = true;
@@ -141,16 +144,18 @@ int patch_ldso_text_hashes(struct sl_elf_ctx *ctx, Elf_Scn *s)
 				uint32_t new_lu12i_w = patch_dsj20_imm(*hi20_insn, new_hash_hi20);
 				uint32_t new_ori = patch_djuk12_imm(*p, new_hash_lo12);
 
-				printf(
-					"%s: patching old hash in .text: lu12i.w offset %zd %08x -> %08x, ori offset %zd %08x -> %08x\n",
-					ctx->path,
-					(uint8_t *)hi20_insn - (uint8_t *)d->d_buf,
-					*hi20_insn,
-					new_lu12i_w,
-					(uint8_t *)p - (uint8_t *)d->d_buf,
-					*p,
-					new_ori
-				);
+				if (ctx->cfg->verbose) {
+					printf(
+						"%s: patching old hash in .text: lu12i.w offset %zd %08x -> %08x, ori offset %zd %08x -> %08x\n",
+						ctx->path,
+						(uint8_t *)hi20_insn - (uint8_t *)d->d_buf,
+						*hi20_insn,
+						new_lu12i_w,
+						(uint8_t *)p - (uint8_t *)d->d_buf,
+						*p,
+						new_ori
+					);
+				}
 
 				*hi20_insn = htole32(new_lu12i_w);
 				*p = htole32(new_ori);
