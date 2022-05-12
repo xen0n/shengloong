@@ -121,9 +121,14 @@ if "$should_run_progs"; then
 	echo
 fi
 
-info 'update the programs in new sysroot'
-"$sl_prog" -f "GLIBC_$old_symver" -t "GLIBC_$new_symver" -v "$workdir_new/bin" || dief 'shengloong failed'
+info 'update the whole new sysroot'
+# this time without enable verbose output for more thorough branch coverage
+"$sl_prog" -f "GLIBC_$old_symver" -t "GLIBC_$new_symver" "$workdir_new" || dief 'shengloong failed'
 echo
+
+# the sysroot itself should stay intact
+assert_sha256sum 08981ad5c367335187971f89b96510f5daa33746eae65c6b099a8f7d4b9b744f "$workdir_new/lib64/ld-linux-loongarch-lp64d.so.1"
+assert_sha256sum 78e7c5064219dedb5c7bacaf73b8ad63da155d92bee174c9b73d00b0dc8c15ff "$workdir_new/lib64/libc.so.6"
 
 # result should be deterministic
 assert_sha256sum 216943dcfe25a2f4a79043558fe6642cbf068dfb0699684c3ff29e4664ef6e56 "$workdir_new/bin/test.old"
