@@ -66,7 +66,8 @@ static int walk_fn(
 	// fd is moved into process
 	int ret = process(&global_cfg, fpath, fd);
 	if (ret) {
-		return FTW_STOP;
+		// better to continue with the remaining files
+		return FTW_CONTINUE;
 	}
 
 	return FTW_CONTINUE;

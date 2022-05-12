@@ -99,7 +99,9 @@ static int process_elf(struct sl_elf_ctx *ctx)
 
 	size_t shstrndx;
 	if (elf_getshdrstrndx(e, &shstrndx) != 0) {
-		return EX_SOFTWARE;
+		// ignore malformed files -- every "normal" binary out there should
+		// have named sections
+		return 0;
 	}
 
 	Elf_Scn *s_dynsym = NULL;
