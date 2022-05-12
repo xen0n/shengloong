@@ -98,6 +98,9 @@ static uint32_t patch_djuk12_imm(uint32_t old_insn, uint32_t new_imm)
 	return (old_insn & 0xffc003ff) | ((new_imm & 0xfff) << 10);
 }
 
+#define READ_INSN(x) le32toh(*x)
+#define WRITE_INSN(p, x) do { *p = htole32(x); } while(0)
+
 int patch_ldso_text_hashes(struct sl_elf_ctx *ctx, Elf_Scn *s)
 {
 	uint32_t old_hash_lo12 = ctx->cfg->from_elfhash & 0xfff;
@@ -114,7 +117,7 @@ int patch_ldso_text_hashes(struct sl_elf_ctx *ctx, Elf_Scn *s)
 		uint32_t *hi20_insn = NULL;
 		int reg = 0;
 		for (; p < end; p++) {
-			uint32_t insn_word = le32toh(*p);
+			uint32_t insn_word = READ_INSN(p);
 
 			if (hi20_insn == NULL) {
 				// find first lu12i.w
@@ -141,24 +144,26 @@ int patch_ldso_text_hashes(struct sl_elf_ctx *ctx, Elf_Scn *s)
 				}
 
 				// patch
-				uint32_t new_lu12i_w = patch_dsj20_imm(*hi20_insn, new_hash_hi20);
-				uint32_t new_ori = patch_djuk12_imm(*p, new_hash_lo12);
+				uint32_t old_lu12i_w = READ_INSN(hi20_insn);
+
+				uint32_t new_lu12i_w = patch_dsj20_imm(old_lu12i_w, new_hash_hi20);
+				uint32_t new_ori = patch_djuk12_imm(insn_word, new_hash_lo12);
 
 				if (ctx->cfg->verbose) {
 					printf(
 						"%s: patching old hash in .text: lu12i.w offset %zd %08x -> %08x, ori offset %zd %08x -> %08x\n",
 						ctx->path,
 						(uint8_t *)hi20_insn - (uint8_t *)d->d_buf,
-						*hi20_insn,
+						old_lu12i_w,
 						new_lu12i_w,
 						(uint8_t *)p - (uint8_t *)d->d_buf,
-						*p,
+						insn_word,
 						new_ori
 					);
 				}
 
-				*hi20_insn = htole32(new_lu12i_w);
-				*p = htole32(new_ori);
+				WRITE_INSN(hi20_insn, new_lu12i_w);
+				WRITE_INSN(p, new_ori);
 				elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
 				ctx->dirty = true;
 

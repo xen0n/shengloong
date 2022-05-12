@@ -97,12 +97,12 @@ static int process_elf(struct sl_elf_ctx *ctx)
 	Elf64_Ehdr *ehdr = elf64_getehdr(e);
 
 	// only process LoongArch files
-	if (le16toh(ehdr->e_machine) != EM_LOONGARCH) {
+	if (ehdr->e_machine != EM_LOONGARCH) {
 		if (ctx->cfg->verbose) {
 			printf(
 				"%s: ignoring: not LoongArch file: e_machine = %d != %d\n",
 				ctx->path,
-				le16toh(ehdr->e_machine),
+				ehdr->e_machine,
 				EM_LOONGARCH
 			);
 		}
@@ -276,11 +276,11 @@ static int process_elf_dynsym(
 			}
 
 			// it seems version symbols are all stored with STN_ABS
-			if (le16toh(sym->st_shndx) != SHN_ABS) {
+			if (sym->st_shndx != SHN_ABS) {
 				goto next_sym;
 			}
 
-			Elf64_Word st_name = le32toh(sym->st_name);
+			Elf64_Word st_name = sym->st_name;
 			const char *ver_name = sl_elf_dynstr(ctx, st_name);
 
 			if (!sl_cfg_is_ver_interesting(ctx->cfg, ver_name)) {
@@ -320,10 +320,10 @@ static int process_elf_gnu_version_d(
 	while (i < n && (d = elf_getdata(s, d)) != NULL) {
 		Elf64_Verdef *vd = (Elf64_Verdef *)(d->d_buf);
 		while (i < n) {
-			Elf64_Verdaux *aux = (Elf64_Verdaux *)((uint8_t *)vd + le32toh(vd->vd_aux));
+			Elf64_Verdaux *aux = (Elf64_Verdaux *)((uint8_t *)vd + vd->vd_aux);
 
 			// only look at the first aux, because this aux is the vd's name
-			Elf64_Word vda_name = le32toh(aux->vda_name);
+			Elf64_Word vda_name = aux->vda_name;
 			const char *vda_name_str = sl_elf_dynstr(ctx, vda_name);
 
 			if (!sl_cfg_is_ver_interesting(ctx->cfg, vda_name_str)) {
@@ -353,15 +353,15 @@ static int process_elf_gnu_version_d(
 			// GCOVR_EXCL_STOP
 
 			// patch hash
-			if (le32toh(vd->vd_hash) != ctx->cfg->to_elfhash) {
-				vd->vd_hash = htole32(ctx->cfg->to_elfhash);
+			if (vd->vd_hash != ctx->cfg->to_elfhash) {
+				vd->vd_hash = ctx->cfg->to_elfhash;
 				elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
 				ctx->dirty = true;
 			}
 
 next:
 			i++;
-			vd = (Elf64_Verdef *)((uint8_t *)vd + le32toh(vd->vd_next));
+			vd = (Elf64_Verdef *)((uint8_t *)vd + vd->vd_next);
 		}
 	}
 
@@ -379,9 +379,9 @@ static int process_elf_gnu_version_r(
 		Elf64_Verneed *vn = (Elf64_Verneed *)(d->d_buf);
 		while (i < n) {
 			size_t j = 0;
-			Elf64_Vernaux *aux = (Elf64_Vernaux *)((uint8_t *)vn + le32toh(vn->vn_aux));
-			for (j = 0; j < vn->vn_cnt; j++, aux = (Elf64_Vernaux *)((uint8_t *)aux + le32toh(aux->vna_next))) {
-				Elf64_Word vna_name = le32toh(aux->vna_name);
+			Elf64_Vernaux *aux = (Elf64_Vernaux *)((uint8_t *)vn + vn->vn_aux);
+			for (j = 0; j < vn->vn_cnt; j++, aux = (Elf64_Vernaux *)((uint8_t *)aux + aux->vna_next)) {
+				Elf64_Word vna_name = aux->vna_name;
 				const char *vna_name_str = sl_elf_raw_dynstr(ctx, vna_name);
 
 				if (!sl_cfg_is_ver_interesting(ctx->cfg, vna_name_str)) {
@@ -419,8 +419,8 @@ static int process_elf_gnu_version_r(
 				// GCOVR_EXCL_STOP
 
 				// patch hash
-				if (le32toh(aux->vna_hash) != ctx->cfg->to_elfhash) {
-					aux->vna_hash = htole32(ctx->cfg->to_elfhash);
+				if (aux->vna_hash != ctx->cfg->to_elfhash) {
+					aux->vna_hash = ctx->cfg->to_elfhash;
 					elf_flagdata(d, ELF_C_SET, ELF_F_DIRTY);
 					elf_flagscn(s, ELF_C_SET, ELF_F_DIRTY);
 					ctx->dirty = true;
@@ -428,7 +428,7 @@ static int process_elf_gnu_version_r(
 			}
 
 			i++;
-			vn = (Elf64_Verneed *)((uint8_t *)vn + le32toh(vn->vn_next));
+			vn = (Elf64_Verneed *)((uint8_t *)vn + vn->vn_next);
 		}
 	}
 
