@@ -80,11 +80,17 @@ static int process_elf(struct sl_elf_ctx *ctx)
 
 	// only process ELF64 files for now
 	if (ident[EI_CLASS] != ELFCLASS64) {
+		if (ctx->cfg->verbose) {
+			printf("%s: ignoring: not ELF64 file\n", ctx->path);
+		}
 		return 0;
 	}
 
 	// only process little-endian files for now
 	if (ident[EI_DATA] != ELFDATA2LSB) {
+		if (ctx->cfg->verbose) {
+			printf("%s: ignoring: not little-endian\n", ctx->path);
+		}
 		return 0;
 	}
 
@@ -92,6 +98,14 @@ static int process_elf(struct sl_elf_ctx *ctx)
 
 	// only process LoongArch files
 	if (le16toh(ehdr->e_machine) != EM_LOONGARCH) {
+		if (ctx->cfg->verbose) {
+			printf(
+				"%s: ignoring: not LoongArch file: e_machine = %d != %d\n",
+				ctx->path,
+				le16toh(ehdr->e_machine),
+				EM_LOONGARCH
+			);
+		}
 		return 0;
 	}
 
@@ -102,6 +116,13 @@ static int process_elf(struct sl_elf_ctx *ctx)
 	if (elf_getshdrstrndx(e, &shstrndx) != 0) {
 		// ignore malformed files -- every "normal" binary out there should
 		// have named sections
+		if (ctx->cfg->verbose) {
+			printf(
+				"%s: ignoring: malformed file: no shstrndx\n",
+				ctx->path
+			);
+		}
+
 		return 0;
 	}
 	// GCOVR_EXCL_STOP
@@ -127,7 +148,16 @@ static int process_elf(struct sl_elf_ctx *ctx)
 
 			const char *scn_name;
 			if ((scn_name = elf_strptr(e, shstrndx, shdr.sh_name)) == NULL) {
-				return EX_SOFTWARE;  // GCOVR_EXCL_LINE: virtually impossible
+				// GCOVR_EXCL_START: virtually impossible
+				if (ctx->cfg->verbose) {
+					printf(
+						"%s: ignoring: malformed file: cannot get section name\n",
+						ctx->path
+					);
+				}
+
+				return EX_SOFTWARE;
+				// GCOVR_EXCL_STOP
 			}
 
 			if (!strcmp(".dynstr", scn_name)) {
