@@ -5,8 +5,11 @@
 ![GitHub license info](https://img.shields.io/github/license/xen0n/shengloong)
 
 **昇龍** upgrades your LoongArch system with outdated glibc symbol version *in-place*,
-to a newer symbol version, so you don't have to re-install from scratch.
-For everyone else this is pretty much useless.
+to a newer symbol version, so you don't have to re-install from scratch if
+glibc 2.36 is released but without the LoongArch port upstreamed.
+For everyone else this is pretty much useless, and the project is bound to be
+obsoleted in a year or two, after the LoongArch port goes upstream making the
+ABI stable.
 
 **昇龍** (Simplified Chinese: 升龙) means "rising dragon", also literally
 "upgrade loong", which is exactly what this tool does.
@@ -29,7 +32,7 @@ emerge app-portage/shengloong
 
 ### From source
 
-**昇龍** should work on any POSIX-like system.
+**昇龍** should work on any POSIX system.
 
 First make sure the dependencies are available. The dependencies are:
 
