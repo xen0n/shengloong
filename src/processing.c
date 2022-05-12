@@ -98,11 +98,13 @@ static int process_elf(struct sl_elf_ctx *ctx)
 	bool is_ldso = endswith(ctx->path, "ld-linux-loongarch-lp64d.so.1", 29);
 
 	size_t shstrndx;
+	// GCOVR_EXCL_START: excessively unlikely to happen
 	if (elf_getshdrstrndx(e, &shstrndx) != 0) {
 		// ignore malformed files -- every "normal" binary out there should
 		// have named sections
 		return 0;
 	}
+	// GCOVR_EXCL_STOP
 
 	Elf_Scn *s_dynsym = NULL;
 	size_t nr_dynsym = 0;
