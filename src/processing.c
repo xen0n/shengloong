@@ -219,8 +219,10 @@ static int process_elf(struct sl_elf_ctx *ctx)
 		// don't alter preexisting layout
 		elf_flagelf(e, ELF_C_SET, ELF_F_LAYOUT);
 		if (elf_update(e, ELF_C_WRITE_MMAP) < 0) {
+			// GCOVR_EXCL_START: unlikely to happen except in cases like media error
 			fprintf(stderr, "%s: elf_update failed: %s\n", ctx->path, elf_errmsg(-1));
 			return EX_SOFTWARE;
+			// GCOVR_EXCL_STOP
 		}
 	}
 
@@ -314,9 +316,11 @@ static int process_elf_gnu_version_d(
 
 			// patch dynstr
 			int ret = sl_elf_patch_dynstr_by_idx(ctx, vda_name, ctx->cfg->to_ver);
+			// GCOVR_EXCL_START: unlikely because no I/O is involved
 			if (ret) {
 				return ret;
 			}
+			// GCOVR_EXCL_STOP
 
 			// patch hash
 			if (le32toh(vd->vd_hash) != ctx->cfg->to_elfhash) {
@@ -378,9 +382,11 @@ static int process_elf_gnu_version_r(
 
 				// patch dynstr
 				int ret = sl_elf_patch_dynstr_by_off(ctx, vna_name, ctx->cfg->to_ver);
+				// GCOVR_EXCL_START: unlikely because no I/O is involved
 				if (ret) {
 					return ret;
 				}
+				// GCOVR_EXCL_STOP
 
 				// patch hash
 				if (le32toh(aux->vna_hash) != ctx->cfg->to_elfhash) {
