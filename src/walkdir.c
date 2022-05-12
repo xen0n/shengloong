@@ -40,8 +40,10 @@ static int walk_fn(
 		ssize_t n = read(fd, magic + nr_read, sizeof(magic) - nr_read);
 		if (n < 0) {
 			// read failed
+			// GCOVR_EXCL_START: unlikely to happen except like media error, given open(2) already succeeded
 			(void) close(fd);
 			return FTW_STOP;
+			// GCOVR_EXCL_STOP
 		}
 		if (n == 0) {
 			// cannot get more data; will happen on special files such as some

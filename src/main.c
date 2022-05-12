@@ -82,9 +82,11 @@ int main(int argc, const char *argv[])
 
 	global_cfg = cfg;
 
+	// GCOVR_EXCL_START: impossible to fail before ELF v2 is released which is extremely unlikely
 	if (elf_version(EV_CURRENT) == EV_NONE) {
-		errx(EX_SOFTWARE, "libelf initialization failed: %s", elf_errmsg(-1));  // GCOVR_EXCL_LINE: impossible branch
+		errx(EX_SOFTWARE, "libelf initialization failed: %s", elf_errmsg(-1));
 	}
+	// GCOVR_EXCL_STOP
 
 	const char *dir;
 	while ((dir = poptGetArg(pctx)) != NULL) {
