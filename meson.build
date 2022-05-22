@@ -36,6 +36,16 @@ sl = executable(
   install: true,
 )
 
+util_bfdhash = executable(
+  'bfdhash',
+
+  'src/utils.c',
+
+  c_args: ['-DUTIL_BFDHASH'],
+  build_by_default: false,
+  install: false,
+)
+
 # Tests
 test(
   'e2e-cli',

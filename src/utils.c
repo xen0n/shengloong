@@ -32,3 +32,24 @@ bool endswith(const char *s, const char *pattern, size_t n)
 	s += l - n;
 	return strncmp(s, pattern, n) == 0;
 }
+
+// GCOVR_EXCL_START
+#ifdef UTIL_BFDHASH
+#include <stdio.h>
+
+int main(int argc, const char *argv[])
+{
+	if (argc < 2) {
+		return 1;
+	}
+
+	int i;
+	for (i = 1; i < argc; i++) {
+		const char *p = argv[i];
+		printf("bfd_elf_hash(\"%s\") = 0x%08lx\n", p, bfd_elf_hash(p));
+	}
+
+	return 0;
+}
+#endif
+// GCOVR_EXCL_STOP
