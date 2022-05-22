@@ -55,11 +55,13 @@ static int walk_fn(
 
     if (nr_read < sizeof(magic)) {
         // definitely not an ELF
+        (void) close(fd);
         return FTW_CONTINUE;
     }
 
     if (strncmp(magic, ELFMAG, 4)) {
         // not an ELF
+        (void) close(fd);
         return FTW_CONTINUE;
     }
 
