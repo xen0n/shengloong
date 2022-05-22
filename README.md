@@ -84,6 +84,8 @@ Usage: shengloong <root dirs>
                                 (default: "GLIBC_2.35")
   -t, --to-ver=GLIBC_2.3y       migrate to this glibc symbol version (default:
                                 "GLIBC_2.36")
+  -a, --check-syscall-abi       scan for syscall ABI incompatibility, don't
+                                patch files
 
 Help options:
   -?, --help                    Show this help message
@@ -102,7 +104,11 @@ sudo shengloong /path/to/sysroot
 # in case we have to migrate again to GLIBC_2.37 from a 2.36 sysroot
 sudo shengloong -f GLIBC_2.36 -t GLIBC_2.37 /path/to/sysroot
 
-# you could migrate multiple sysroots in one invocation
+# after the migration, you may also check if you have to get rid of newfstatat
+# usage in your system
+sudo shengloong -a /path/sysroot
+
+# you could also migrate multiple sysroots in one invocation
 sudo shengloong /sysroot/a /sysroot/b
 ```
 
