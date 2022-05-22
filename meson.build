@@ -28,6 +28,7 @@ sl = executable(
   'src/main.c',
   'src/processing.c',
   'src/processing_ldso.c',
+  'src/processing_syscall_abi.c',
   'src/utils.c',
   'src/walkdir.c',
 

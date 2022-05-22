@@ -16,6 +16,7 @@
 #include "cfg.h"
 #include "ctx.h"
 #include "elfcompat.h"
+#include "processing_syscall_abi.h"
 #include "utils.h"
 #include "walkdir.h"
 
@@ -52,6 +53,7 @@ int main(int argc, const char *argv[])
 		{ "pretend", 'p', POPT_ARG_NONE, &cfg.dry_run, 0, "don't actually patch the files", NULL },
 		{ "from-ver", 'f', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cfg.from_ver, 0, "migrate from this glibc symbol version", "GLIBC_2.3x" },
 		{ "to-ver", 't', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cfg.to_ver, 0, "migrate to this glibc symbol version", "GLIBC_2.3y" },
+		{ "check-syscall-abi", 'a', POPT_ARG_NONE, &cfg.check_syscall_abi, 0, "scan for syscall ABI incompatibility, don't patch files", NULL },
 		POPT_AUTOHELP
 		POPT_TABLEEND
 	};
@@ -80,6 +82,10 @@ int main(int argc, const char *argv[])
 	cfg.from_elfhash = bfd_elf_hash(cfg.from_ver);
 	cfg.to_elfhash = bfd_elf_hash(cfg.to_ver);
 
+	if (cfg.check_syscall_abi) {
+		cfg.dry_run = 1;
+	}
+
 	global_cfg = cfg;
 
 	// GCOVR_EXCL_START: impossible to fail before ELF v2 is released which is extremely unlikely
@@ -95,6 +101,11 @@ int main(int argc, const char *argv[])
 			return ret;
 		}
 	}
+
+	if (cfg.check_syscall_abi) {
+		print_final_report();
+	}
+
 
 	poptFreeContext(pctx);
 

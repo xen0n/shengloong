@@ -144,4 +144,12 @@ if "$should_run_progs"; then
 	echo
 fi
 
+info 'even the new sysroot has deprecated syscall usages'
+stdout="$("$sl_prog" -a "$workdir_new")"
+[[ $? -ne 0 ]] && dief 'shengloong -a failed'
+echo "$stdout" | grep 'lib64/libc\.so\.6: usage of removed syscall `newfstatat` at \.text+0xb37f8$' || dief 'expected to see .text+0xb37f8 being called out'
+echo "$stdout" | grep 'lib64/ld-linux-loongarch-lp64d\.so\.1: usage of removed syscall `newfstatat` at \.text+0x1bb64$' || dief 'expected to see .text+0x1bb64 being called out'
+
+echo
+
 info 'all passed!'

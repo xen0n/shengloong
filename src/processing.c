@@ -9,6 +9,7 @@
 #include "elfcompat.h"
 #include "processing.h"
 #include "processing_ldso.h"
+#include "processing_syscall_abi.h"
 #include "utils.h"
 
 static int process_elf(struct sl_elf_ctx *ctx);
@@ -160,6 +161,19 @@ static int process_elf(struct sl_elf_ctx *ctx)
 				// GCOVR_EXCL_STOP
 			}
 
+			if (is_ldso || ctx->cfg->check_syscall_abi) {
+				if (!strcmp(".text", scn_name)) {
+					s_text = scn;
+
+					if (ctx->cfg->check_syscall_abi) {
+						// in syscall ABI check mode, only .text is needed
+						break;
+					}
+
+					continue;
+				}
+			}
+
 			if (!strcmp(".dynstr", scn_name)) {
 				ctx->dynstr = i;
 				ctx->dynstr_d = elf_getdata(scn, NULL);
@@ -188,12 +202,15 @@ static int process_elf(struct sl_elf_ctx *ctx)
 					s_rodata = scn;
 					continue;
 				}
-				if (!strcmp(".text", scn_name)) {
-					s_text = scn;
-					continue;
-				}
 			}
 		}
+	}
+
+	if (ctx->cfg->check_syscall_abi) {
+		if (s_text) {
+			scan_for_fstatxx(ctx, s_text);
+		}
+		return 0;
 	}
 
 	if (s_gnu_version_d) {
