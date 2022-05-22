@@ -4,7 +4,7 @@ mydir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$mydir/../_common.sh"
 
 if [[ $# -ne 1 ]]; then
-	dief 'usage: %s <target shengloong executable to test>' "$0"
+  dief 'usage: %s <target shengloong executable to test>' "$0"
 fi
 
 # target shengloong executable to test is passed in argv[1]
@@ -13,7 +13,7 @@ sl_prog="$(realpath "$1")"
 workdir="$(mktemp -d)"
 
 cleanup() {
-	dbgrun rm -rf "$workdir" || true
+  dbgrun rm -rf "$workdir" || true
 }
 
 trap cleanup EXIT
@@ -23,11 +23,11 @@ cp -r "$mydir"/*.a "$mydir"/*.bin "$workdir" || dief 'cp failed'
 
 # now for some fun: cycles!
 pushd "$workdir" > /dev/null || dief 'pushd failed'
-	mkdir a b c d || dief 'mkdir failed'
-	ln -s ../b ./a/next || dief 'symlink failed'
-	ln -s ../c ./b/next || dief 'symlink failed'
-	ln -s ../a ./c/next || dief 'symlink failed'
-	ln -s . ./d/self || dief 'symlink failed'
+  mkdir a b c d || dief 'mkdir failed'
+  ln -s ../b ./a/next || dief 'symlink failed'
+  ln -s ../c ./b/next || dief 'symlink failed'
+  ln -s ../a ./c/next || dief 'symlink failed'
+  ln -s . ./d/self || dief 'symlink failed'
 popd > /dev/null || dief 'popd failed'
 
 info 'dry-running on /dev for lots of special files'

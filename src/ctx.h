@@ -6,15 +6,15 @@
 #include <libelf.h>
 
 struct sl_elf_ctx {
-	const struct sl_cfg *cfg;
+    const struct sl_cfg *cfg;
 
-	const char *path;
-	Elf *e;
+    const char *path;
+    Elf *e;
 
-	size_t dynstr;
-	Elf_Data *dynstr_d;
+    size_t dynstr;
+    Elf_Data *dynstr_d;
 
-	bool dirty;
+    bool dirty;
 };
 
 const char *sl_elf_dynstr(const struct sl_elf_ctx *ctx, size_t idx);

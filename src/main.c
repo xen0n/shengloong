@@ -16,6 +16,7 @@
 #include "cfg.h"
 #include "ctx.h"
 #include "elfcompat.h"
+#include "processing_syscall_abi.h"
 #include "utils.h"
 #include "walkdir.h"
 
@@ -27,11 +28,11 @@ static void
 __attribute__((noreturn))
 usage(poptContext pctx, const char *error)
 {
-	poptPrintUsage(pctx, stderr, 0);
-	if (error) {
-		fprintf(stderr, "%s\n", error);
-	}
-	exit(EX_USAGE);
+    poptPrintUsage(pctx, stderr, 0);
+    if (error) {
+        fprintf(stderr, "%s\n", error);
+    }
+    exit(EX_USAGE);
 }
 
 #define DEFAULT_FROM "GLIBC_2.35"
@@ -39,62 +40,74 @@ usage(poptContext pctx, const char *error)
 
 int main(int argc, const char *argv[])
 {
-	struct sl_cfg cfg = {
-		.verbose = false,
-		.dry_run = false,
+    struct sl_cfg cfg = {
+        .verbose = false,
+        .dry_run = false,
 
-		.from_ver = DEFAULT_FROM,
-		.to_ver = DEFAULT_TO,
-	};
+        .from_ver = DEFAULT_FROM,
+        .to_ver = DEFAULT_TO,
+    };
 
-	struct poptOption options[] = {
-		{ "verbose", 'v', POPT_ARG_NONE, &cfg.verbose, 0, "produce more (debugging) output", NULL },
-		{ "pretend", 'p', POPT_ARG_NONE, &cfg.dry_run, 0, "don't actually patch the files", NULL },
-		{ "from-ver", 'f', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cfg.from_ver, 0, "migrate from this glibc symbol version", "GLIBC_2.3x" },
-		{ "to-ver", 't', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cfg.to_ver, 0, "migrate to this glibc symbol version", "GLIBC_2.3y" },
-		POPT_AUTOHELP
-		POPT_TABLEEND
-	};
+    struct poptOption options[] = {
+        { "verbose", 'v', POPT_ARG_NONE, &cfg.verbose, 0, "produce more (debugging) output", NULL },
+        { "pretend", 'p', POPT_ARG_NONE, &cfg.dry_run, 0, "don't actually patch the files", NULL },
+        { "from-ver", 'f', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cfg.from_ver, 0, "migrate from this glibc symbol version", "GLIBC_2.3x" },
+        { "to-ver", 't', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cfg.to_ver, 0, "migrate to this glibc symbol version", "GLIBC_2.3y" },
+        { "check-syscall-abi", 'a', POPT_ARG_NONE, &cfg.check_syscall_abi, 0, "scan for syscall ABI incompatibility, don't patch files", NULL },
+        POPT_AUTOHELP
+        POPT_TABLEEND
+    };
 
-	poptContext pctx = poptGetContext(NULL, argc, argv, options, 0);
-	poptSetOtherOptionHelp(pctx, "<root dirs>");
-	if (argc < 2) {
-		usage(pctx, NULL);
-	}
+    poptContext pctx = poptGetContext(NULL, argc, argv, options, 0);
+    poptSetOtherOptionHelp(pctx, "<root dirs>");
+    if (argc < 2) {
+        usage(pctx, NULL);
+    }
 
-	int ret = poptGetNextOpt(pctx);
-	if (ret < -1) {
-		fprintf(
-			stderr,
-			"%s: %s\n",
-			poptBadOption(pctx, POPT_BADOPTION_NOALIAS),
-			poptStrerror(ret)
-		);
-		exit(EX_USAGE);
-	}
+    int ret = poptGetNextOpt(pctx);
+    if (ret < -1) {
+        fprintf(
+            stderr,
+            "%s: %s\n",
+            poptBadOption(pctx, POPT_BADOPTION_NOALIAS),
+            poptStrerror(ret)
+        );
+        exit(EX_USAGE);
+    }
 
-	if (poptPeekArg(pctx) == NULL) {
-		usage(pctx, "at least one directory argument is required");
-	}
+    if (poptPeekArg(pctx) == NULL) {
+        usage(pctx, "at least one directory argument is required");
+    }
 
-	cfg.from_elfhash = bfd_elf_hash(cfg.from_ver);
-	cfg.to_elfhash = bfd_elf_hash(cfg.to_ver);
+    cfg.from_elfhash = bfd_elf_hash(cfg.from_ver);
+    cfg.to_elfhash = bfd_elf_hash(cfg.to_ver);
 
-	global_cfg = cfg;
+    if (cfg.check_syscall_abi) {
+        cfg.dry_run = 1;
+    }
 
-	if (elf_version(EV_CURRENT) == EV_NONE) {
-		errx(EX_SOFTWARE, "libelf initialization failed: %s", elf_errmsg(-1));  // GCOVR_EXCL_LINE: impossible branch
-	}
+    global_cfg = cfg;
 
-	const char *dir;
-	while ((dir = poptGetArg(pctx)) != NULL) {
-		ret = process_dir(dir);
-		if (ret) {
-			return ret;
-		}
-	}
+    // GCOVR_EXCL_START: impossible to fail before ELF v2 is released which is extremely unlikely
+    if (elf_version(EV_CURRENT) == EV_NONE) {
+        errx(EX_SOFTWARE, "libelf initialization failed: %s", elf_errmsg(-1));
+    }
+    // GCOVR_EXCL_STOP
 
-	poptFreeContext(pctx);
+    const char *dir;
+    while ((dir = poptGetArg(pctx)) != NULL) {
+        ret = process_dir(dir);
+        if (ret) {
+            return ret;
+        }
+    }
 
-	return 0;
+    if (cfg.check_syscall_abi) {
+        print_final_report();
+    }
+
+
+    poptFreeContext(pctx);
+
+    return 0;
 }

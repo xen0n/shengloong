@@ -1,7 +1,7 @@
 project(
   'shengloong',
   'c',
-  version: '0.1.3',
+  version: '0.2.0',
   license: 'GPL-3.0-or-later',
   default_options: [
     'c_std=c99',
@@ -28,11 +28,22 @@ sl = executable(
   'src/main.c',
   'src/processing.c',
   'src/processing_ldso.c',
+  'src/processing_syscall_abi.c',
   'src/utils.c',
   'src/walkdir.c',
 
   dependencies: deps,
   install: true,
+)
+
+util_bfdhash = executable(
+  'bfdhash',
+
+  'src/utils.c',
+
+  c_args: ['-DUTIL_BFDHASH'],
+  build_by_default: false,
+  install: false,
 )
 
 # Tests
