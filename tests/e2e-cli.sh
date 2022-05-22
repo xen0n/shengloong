@@ -4,7 +4,7 @@ mydir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$mydir/_common.sh"
 
 if [[ $# -ne 1 ]]; then
-	dief 'usage: %s <target shengloong executable to test>' "$0"
+  dief 'usage: %s <target shengloong executable to test>' "$0"
 fi
 
 # target shengloong executable to test is passed in argv[1]

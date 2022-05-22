@@ -1,0 +1,17 @@
+# EditorConfig is awesome: http://EditorConfig.org
+
+root = true
+
+# 2 spaces for everything else
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+# use 4 spaces for C, (the single) assembly and Markdown
+[{*.c,*.h,*.s,*.md}]
+indent_size = 4
