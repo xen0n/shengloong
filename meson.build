@@ -26,7 +26,7 @@ subdir('po')
 config_data = configuration_data()
 config_data.set_quoted('CONFIG_LOCALEDIR', get_option('prefix') / get_option('localedir'))
 
-if dependency('intl').found()
+if get_option('nls').allowed() and dependency('intl').found()
   # build options that need gettext
   config_data.set('ENABLE_NLS', 1)
 else

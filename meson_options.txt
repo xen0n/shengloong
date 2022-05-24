@@ -1,0 +1,6 @@
+option(
+  'nls',
+  type: 'feature',
+  value: 'auto',
+  description: 'Enable localization of UI',
+)
