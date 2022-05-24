@@ -1,12 +1,13 @@
 project(
   'shengloong',
   'c',
-  version: '0.2.1',
+  version: '0.2.2',
   license: 'GPL-3.0-or-later',
   default_options: [
     'c_std=c99',
     'warning_level=3',
   ],
+  meson_version: '>=0.61.0',
 )
 
 deps = [
@@ -20,6 +21,25 @@ cflags = [
 ]
 add_project_arguments(cflags, language: 'c')
 
+# i18n
+subdir('po')
+
+config_data = configuration_data()
+config_data.set_quoted('CONFIG_LOCALEDIR', get_option('prefix') / get_option('localedir'))
+
+if get_option('nls').require(
+  dependency('intl').found(), error_message: 'NLS explicitly requested but no intl',
+).allowed()
+  # build options that need gettext
+  config_data.set('ENABLE_NLS', 1)
+  deps += [dependency('intl')]
+else
+  config_data.set('ENABLE_NLS', 0)
+endif
+
+config_h = configure_file(output: 'buildconfig.gen.h', configuration: config_data)
+
+# main executable
 sl = executable(
   'shengloong',
 
@@ -31,6 +51,7 @@ sl = executable(
   'src/processing_syscall_abi.c',
   'src/utils.c',
   'src/walkdir.c',
+  config_h,
 
   dependencies: deps,
   install: true,

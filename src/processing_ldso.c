@@ -4,8 +4,12 @@
 #include <string.h>
 #include <sysexits.h>
 
+#include "buildconfig.gen.h"
 #include "cfg.h"
+#include "gettext.h"
 #include "processing_ldso.h"
+
+#define _(x) gettext(x)
 
 int patch_ldso_rodata(struct sl_elf_ctx *ctx, Elf_Scn *s)
 {
@@ -37,7 +41,7 @@ int patch_ldso_rodata(struct sl_elf_ctx *ctx, Elf_Scn *s)
 
             if (ctx->cfg->dry_run) {
                 printf(
-                    "%s: hard-coded symbol version in .rodata: %s (offset %zd) needs patching\n",
+                    _("%s: hard-coded symbol version in .rodata: %s (offset %zd) needs patching\n"),
                     ctx->path,
                     version_tag,
                     version_tag - (char *)d->d_buf
@@ -47,7 +51,7 @@ int patch_ldso_rodata(struct sl_elf_ctx *ctx, Elf_Scn *s)
 
             if (ctx->cfg->verbose) {
                 printf(
-                    "%s: patching hard-coded symbol version in .rodata: %s (offset %zd) -> %s\n",
+                    _("%s: patching hard-coded symbol version in .rodata: %s (offset %zd) -> %s\n"),
                     ctx->path,
                     version_tag,
                     version_tag - (char *)d->d_buf,
@@ -135,7 +139,7 @@ int patch_ldso_text_hashes(struct sl_elf_ctx *ctx, Elf_Scn *s)
                 // found an immediate load of old hash
                 if (ctx->cfg->dry_run) {
                     printf(
-                        "%s: old hash in .text needs patching: lu12i.w offset %zd, ori offset %zd\n",
+                        _("%s: old hash in .text needs patching: lu12i.w offset %zd, ori offset %zd\n"),
                         ctx->path,
                         (uint8_t *)hi20_insn - (uint8_t *)d->d_buf,
                         (uint8_t *)p - (uint8_t *)d->d_buf
@@ -151,7 +155,7 @@ int patch_ldso_text_hashes(struct sl_elf_ctx *ctx, Elf_Scn *s)
 
                 if (ctx->cfg->verbose) {
                     printf(
-                        "%s: patching old hash in .text: lu12i.w offset %zd %08x -> %08x, ori offset %zd %08x -> %08x\n",
+                        _("%s: patching old hash in .text: lu12i.w offset %zd %08x -> %08x, ori offset %zd %08x -> %08x\n"),
                         ctx->path,
                         (uint8_t *)hi20_insn - (uint8_t *)d->d_buf,
                         old_lu12i_w,

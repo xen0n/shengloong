@@ -5,8 +5,12 @@
 #include <sysexits.h>
 #include <sys/param.h>
 
+#include "buildconfig.gen.h"
 #include "cfg.h"
+#include "gettext.h"
 #include "processing_syscall_abi.h"
+
+#define _(x) gettext(x)
 
 static bool g_has_syscall_abi_problems = false;
 
@@ -125,7 +129,7 @@ void scan_for_fstatxx(struct sl_elf_ctx *ctx, Elf_Scn *s)
 
             g_has_syscall_abi_problems = true;
             printf(
-                "%s: usage of removed syscall `%s` at .text+0x%zx\n",
+                _("%s: usage of removed syscall `%s` at .text+0x%zx\n"),
                 ctx->path,
                 problematic_syscall,
                 (uint8_t *)p - (uint8_t *)d->d_buf
@@ -137,7 +141,7 @@ void scan_for_fstatxx(struct sl_elf_ctx *ctx, Elf_Scn *s)
 void print_final_report()
 {
     if (g_has_syscall_abi_problems) {
-        printf(
+        printf(_(
             "\n"
             "        \x1b[31m╔═══════════════════════════════════════════════════════════╗\x1b[m\n"
             "        \x1b[31m║                                                           ║\x1b[m\n"
@@ -152,11 +156,11 @@ void print_final_report()
             "   You can run \x1b[32mshengloong -a\x1b[m again, after you have upgraded the libc,\n"
             "   if unsure.\n"
             "\n"
-        );
+        ));
         return;
     }
 
-    printf(
+    printf(_(
         "\x1b[32m\n"
         "        ╔═════════════════════════════════════════════════════════╗\n"
         "        ║                                                         ║\n"
@@ -164,5 +168,5 @@ void print_final_report()
         "        ║                                                         ║\n"
         "        ╚═════════════════════════════════════════════════════════╝\n"
         "\x1b[m\n"
-    );
+    ));
 }

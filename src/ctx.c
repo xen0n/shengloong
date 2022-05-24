@@ -2,7 +2,11 @@
 #include <string.h>
 #include <sysexits.h>
 
+#include "buildconfig.gen.h"
 #include "ctx.h"
+#include "gettext.h"
+
+#define _(x) gettext(x)
 
 const char *sl_elf_dynstr(const struct sl_elf_ctx *ctx, size_t idx)
 {
@@ -25,7 +29,7 @@ int sl_elf_patch_dynstr_by_off(struct sl_elf_ctx *ctx, size_t off, const char *n
     if (oldlen != newlen) {
         fprintf(
             stderr,
-            "%s: cannot patch string with unequal lengths: attempted '%s' -> '%s'\n",
+            _("%s: cannot patch string with unequal lengths: attempted '%s' -> '%s'\n"),
             ctx->path,
             oldval,
             newval

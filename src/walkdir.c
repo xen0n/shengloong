@@ -4,8 +4,12 @@
 #include <sysexits.h>
 #include <unistd.h>
 
+#include "buildconfig.gen.h"
 #include "cfg.h"
+#include "gettext.h"
 #include "processing.h"
+
+#define _(x) gettext(x)
 
 static int walk_fn(
     const char *fpath,
