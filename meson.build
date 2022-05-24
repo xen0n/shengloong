@@ -7,6 +7,7 @@ project(
     'c_std=c99',
     'warning_level=3',
   ],
+  meson_version: '>=0.61.0',
 )
 
 deps = [
