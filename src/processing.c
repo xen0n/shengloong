@@ -6,11 +6,15 @@
 
 #include <gelf.h>
 
+#include "buildconfig.gen.h"
 #include "elfcompat.h"
+#include "gettext.h"
 #include "processing.h"
 #include "processing_ldso.h"
 #include "processing_syscall_abi.h"
 #include "utils.h"
+
+#define _(x) gettext(x)
 
 static int process_elf(struct sl_elf_ctx *ctx);
 static int process_elf_dynsym(struct sl_elf_ctx *ctx, Elf_Scn *s, size_t n);
@@ -26,7 +30,7 @@ int process(const struct sl_cfg *cfg, const char *path, int fd)
     e = elf_begin(fd, cfg->dry_run ? ELF_C_READ_MMAP : ELF_C_RDWR_MMAP, NULL);
     // GCOVR_EXCL_START: excessively unlikely to happen
     if (!e) {
-        fprintf(stderr, "elf_begin on %s (fd %d) failed: %s\n", path, fd, elf_errmsg(-1));
+        fprintf(stderr, _("elf_begin on %s (fd %d) failed: %s\n"), path, fd, elf_errmsg(-1));
         goto close;
     }
     // GCOVR_EXCL_STOP
@@ -82,7 +86,7 @@ static int process_elf(struct sl_elf_ctx *ctx)
     // only process ELF64 files for now
     if (ident[EI_CLASS] != ELFCLASS64) {
         if (ctx->cfg->verbose) {
-            printf("%s: ignoring: not ELF64 file\n", ctx->path);
+            printf(_("%s: ignoring: not ELF64 file\n"), ctx->path);
         }
         return 0;
     }
@@ -90,7 +94,7 @@ static int process_elf(struct sl_elf_ctx *ctx)
     // only process little-endian files for now
     if (ident[EI_DATA] != ELFDATA2LSB) {
         if (ctx->cfg->verbose) {
-            printf("%s: ignoring: not little-endian\n", ctx->path);
+            printf(_("%s: ignoring: not little-endian\n"), ctx->path);
         }
         return 0;
     }
@@ -101,7 +105,7 @@ static int process_elf(struct sl_elf_ctx *ctx)
     if (ehdr->e_machine != EM_LOONGARCH) {
         if (ctx->cfg->verbose) {
             printf(
-                "%s: ignoring: not LoongArch file: e_machine = %d != %d\n",
+                _("%s: ignoring: not LoongArch file: e_machine = %d != %d\n"),
                 ctx->path,
                 ehdr->e_machine,
                 EM_LOONGARCH
@@ -119,7 +123,7 @@ static int process_elf(struct sl_elf_ctx *ctx)
         // have named sections
         if (ctx->cfg->verbose) {
             printf(
-                "%s: ignoring: malformed file: no shstrndx\n",
+                _("%s: ignoring: malformed file: no shstrndx\n"),
                 ctx->path
             );
         }
@@ -152,7 +156,7 @@ static int process_elf(struct sl_elf_ctx *ctx)
                 // GCOVR_EXCL_START: virtually impossible
                 if (ctx->cfg->verbose) {
                     printf(
-                        "%s: ignoring: malformed file: cannot get section name\n",
+                        _("%s: ignoring: malformed file: cannot get section name\n"),
                         ctx->path
                     );
                 }
@@ -261,13 +265,17 @@ static int process_elf(struct sl_elf_ctx *ctx)
     }
 
     if (!ctx->cfg->dry_run && ctx->dirty) {
-        printf("%s %s\n", ctx->cfg->verbose ? "writing" : "patching", ctx->path);
+        if (ctx->cfg->verbose) {
+            printf(_("writing %s\n"), ctx->path);
+        } else {
+            printf(_("patching %s\n"), ctx->path);
+        }
 
         // don't alter preexisting layout
         elf_flagelf(e, ELF_C_SET, ELF_F_LAYOUT);
         if (elf_update(e, ELF_C_WRITE_MMAP) < 0) {
             // GCOVR_EXCL_START: unlikely to happen except in cases like media error
-            fprintf(stderr, "%s: elf_update failed: %s\n", ctx->path, elf_errmsg(-1));
+            fprintf(stderr, _("%s: elf_update failed: %s\n"), ctx->path, elf_errmsg(-1));
             return EX_SOFTWARE;
             // GCOVR_EXCL_STOP
         }
@@ -305,12 +313,12 @@ static int process_elf_dynsym(
             }
 
             if (ctx->cfg->dry_run) {
-                printf("%s: symbol version %s at idx %zd needs patching\n", ctx->path, ver_name, i);
+                printf(_("%s: symbol version %s at idx %zd needs patching\n"), ctx->path, ver_name, i);
                 goto next_sym;
             }
 
             if (ctx->cfg->verbose) {
-                printf("%s: patching symbol version %s at idx %zd -> %s\n", ctx->path, ver_name, i, ctx->cfg->to_ver);
+                printf(_("%s: patching symbol version %s at idx %zd -> %s\n"), ctx->path, ver_name, i, ctx->cfg->to_ver);
             }
 
             int ret = sl_elf_patch_dynstr_by_idx(ctx, st_name, ctx->cfg->to_ver);
@@ -349,7 +357,7 @@ static int process_elf_gnu_version_d(
 
             if (ctx->cfg->dry_run) {
                 printf(
-                    "%s: verdef %zd: %s needs patching\n",
+                    _("%s: verdef %zd: %s needs patching\n"),
                     ctx->path,
                     i,
                     vda_name_str
@@ -358,7 +366,7 @@ static int process_elf_gnu_version_d(
             }
 
             if (ctx->cfg->verbose) {
-                printf("%s: patching verdef %zd -> %s\n", ctx->path, i, ctx->cfg->to_ver);
+                printf(_("%s: patching verdef %zd -> %s\n"), ctx->path, i, ctx->cfg->to_ver);
             }
 
             // patch dynstr
@@ -407,7 +415,7 @@ static int process_elf_gnu_version_r(
 
                 if (ctx->cfg->dry_run) {
                     printf(
-                        "%s: verneed %zd: aux %zd name %s needs patching\n",
+                        _("%s: verneed %zd: aux %zd name %s needs patching\n"),
                         ctx->path,
                         i,
                         j,
@@ -418,7 +426,7 @@ static int process_elf_gnu_version_r(
 
                 if (ctx->cfg->verbose) {
                     printf(
-                        "%s: patching verneed %zd aux %zd %s -> %s\n",
+                        _("%s: patching verneed %zd aux %zd %s -> %s\n"),
                         ctx->path,
                         i,
                         j,

@@ -1,0 +1,187 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the shengloong package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: shengloong\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-05-24 09:47+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/ctx.c:31
+#, c-format
+msgid "%s: cannot patch string with unequal lengths: attempted '%s' -> '%s'\n"
+msgstr ""
+
+#: src/main.c:55
+msgid "produce more (debugging) output"
+msgstr ""
+
+#: src/main.c:56
+msgid "don't actually patch the files"
+msgstr ""
+
+#: src/main.c:57
+msgid "migrate from this glibc symbol version"
+msgstr ""
+
+#: src/main.c:58
+msgid "migrate to this glibc symbol version"
+msgstr ""
+
+#: src/main.c:59
+msgid "scan for syscall ABI incompatibility, don't patch files"
+msgstr ""
+
+#: src/main.c:65
+msgid "<root dirs>"
+msgstr ""
+
+#: src/main.c:82
+msgid "at least one directory argument is required"
+msgstr ""
+
+#: src/main.c:96
+#, c-format
+msgid "libelf initialization failed: %s"
+msgstr ""
+
+#: src/processing.c:32
+#, c-format
+msgid "elf_begin on %s (fd %d) failed: %s\n"
+msgstr ""
+
+#: src/processing.c:88
+#, c-format
+msgid "%s: ignoring: not ELF64 file\n"
+msgstr ""
+
+#: src/processing.c:96
+#, c-format
+msgid "%s: ignoring: not little-endian\n"
+msgstr ""
+
+#: src/processing.c:107
+#, c-format
+msgid "%s: ignoring: not LoongArch file: e_machine = %d != %d\n"
+msgstr ""
+
+#: src/processing.c:125
+#, c-format
+msgid "%s: ignoring: malformed file: no shstrndx\n"
+msgstr ""
+
+#: src/processing.c:158
+#, c-format
+msgid "%s: ignoring: malformed file: cannot get section name\n"
+msgstr ""
+
+#: src/processing.c:268
+#, c-format
+msgid "writing %s\n"
+msgstr ""
+
+#: src/processing.c:270
+#, c-format
+msgid "patching %s\n"
+msgstr ""
+
+#: src/processing.c:277
+#, c-format
+msgid "%s: elf_update failed: %s\n"
+msgstr ""
+
+#: src/processing.c:315
+#, c-format
+msgid "%s: symbol version %s at idx %zd needs patching\n"
+msgstr ""
+
+#: src/processing.c:320
+#, c-format
+msgid "%s: patching symbol version %s at idx %zd -> %s\n"
+msgstr ""
+
+#: src/processing.c:359
+#, c-format
+msgid "%s: verdef %zd: %s needs patching\n"
+msgstr ""
+
+#: src/processing.c:368
+#, c-format
+msgid "%s: patching verdef %zd -> %s\n"
+msgstr ""
+
+#: src/processing.c:417
+#, c-format
+msgid "%s: verneed %zd: aux %zd name %s needs patching\n"
+msgstr ""
+
+#: src/processing.c:428
+#, c-format
+msgid "%s: patching verneed %zd aux %zd %s -> %s\n"
+msgstr ""
+
+#: src/processing_ldso.c:43
+#, c-format
+msgid "%s: hard-coded symbol version in .rodata: %s (offset %zd) needs patching\n"
+msgstr ""
+
+#: src/processing_ldso.c:53
+#, c-format
+msgid "%s: patching hard-coded symbol version in .rodata: %s (offset %zd) -> %s\n"
+msgstr ""
+
+#: src/processing_ldso.c:141
+#, c-format
+msgid "%s: old hash in .text needs patching: lu12i.w offset %zd, ori offset %zd\n"
+msgstr ""
+
+#: src/processing_ldso.c:157
+#, c-format
+msgid "%s: patching old hash in .text: lu12i.w offset %zd %08x -> %08x, ori offset %zd %08x -> %08x\n"
+msgstr ""
+
+#: src/processing_syscall_abi.c:131
+#, c-format
+msgid "%s: usage of removed syscall `%s` at .text+0x%zx\n"
+msgstr ""
+
+#: src/processing_syscall_abi.c:144
+#, c-format
+msgid ""
+"\n"
+"        [31m╔═══════════════════════════════════════════════════════════╗[m\n"
+"        [31m║                                                           ║[m\n"
+"        [31m║[m              You need to [1;31mUPGRADE YOUR LIBC[0;32m*[m,              [31m║[m\n"
+"        [31m║[m  [1;31mBEFORE[m you reboot into a kernel without these syscalls.  [31m║[m\n"
+"        [31m║                                                           ║[m\n"
+"        [31m╚═══════════════════════════════════════════════════════════╝[m\n"
+"\n"
+" [32m*[m If other non-libc programs are shown above, they should be rebuilt\n"
+"   after the libc upgrade as well.\n"
+"\n"
+"   You can run [32mshengloong -a[m again, after you have upgraded the libc,\n"
+"   if unsure.\n"
+"\n"
+msgstr ""
+
+#: src/processing_syscall_abi.c:163
+#, c-format
+msgid ""
+"[32m\n"
+"        ╔═════════════════════════════════════════════════════════╗\n"
+"        ║                                                         ║\n"
+"        ║  [1mNo deprecated syscall usage was found on your system![0;32m  ║\n"
+"        ║                                                         ║\n"
+"        ╚═════════════════════════════════════════════════════════╝\n"
+"[m\n"
+msgstr ""

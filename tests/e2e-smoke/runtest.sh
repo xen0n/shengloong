@@ -7,6 +7,10 @@ if [[ $# -ne 1 ]]; then
   dief 'usage: %s <target shengloong executable to test>' "$0"
 fi
 
+# don't let i18n interfere with string matches
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
+
 # target shengloong executable to test is passed in argv[1]
 sl_prog="$(realpath "$1")"
 

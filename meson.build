@@ -20,6 +20,22 @@ cflags = [
 ]
 add_project_arguments(cflags, language: 'c')
 
+# i18n
+subdir('po')
+
+config_data = configuration_data()
+config_data.set_quoted('CONFIG_LOCALEDIR', get_option('prefix') / get_option('localedir'))
+
+if dependency('intl').found()
+  # build options that need gettext
+  config_data.set('ENABLE_NLS', 1)
+else
+  config_data.set('ENABLE_NLS', 0)
+endif
+
+config_h = configure_file(output: 'buildconfig.gen.h', configuration: config_data)
+
+# main executable
 sl = executable(
   'shengloong',
 
@@ -31,6 +47,7 @@ sl = executable(
   'src/processing_syscall_abi.c',
   'src/utils.c',
   'src/walkdir.c',
+  config_h,
 
   dependencies: deps,
   install: true,
