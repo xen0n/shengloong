@@ -27,14 +27,15 @@ jobs:
         python-version: '3.x'
 
     - name: Install dependencies
-      run: sudo apt-get install -y libelf-dev libpopt-dev curl
+      run: sudo apt-get install -y libelf-dev libpopt-dev meson ninja-build gcovr curl
 
-    - uses: BSFishy/meson-build@v1.0.3
-      with:
-        action: test
-        directory: builddir
-        setup-options: -Db_coverage=true -Dnls=enabled
-        meson-version: 0.61.4
+    - name: Configure
+      run: meson setup builddir/ -Db_coverage=true
+      env:
+        CC: gcc
+
+    - name: Test
+      run: meson test -C builddir/ -v
 
     - name: Generate and upload coverage
       run: ninja -C builddir/ coverage-xml && bash <(curl -s https://codecov.io/bash)
