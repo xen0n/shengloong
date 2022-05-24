@@ -27,7 +27,7 @@ jobs:
         python-version: '3.x'
 
     - name: Install dependencies
-      run: sudo apt-get install -y libelf-dev libpopt-dev ninja-build gcovr curl gettext && sudo pip install 'meson==0.61.4'
+      run: sudo apt-get install -y libelf-dev libpopt-dev ninja-build gcovr curl && sudo pip install 'meson==0.61.4'
 
     - name: Configure
       run: meson setup builddir/ -Db_coverage=true -Dnls=enabled
