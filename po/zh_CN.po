@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: shengloong\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-05-24 09:47+0800\n"
+"POT-Creation-Date: 2022-05-28 15:04+0800\n"
 "PO-Revision-Date: 2022-05-24 09:47+0800\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -16,145 +16,155 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/ctx.c:31
+#: src/ctx.c:32
 #, c-format
 msgid "%s: cannot patch string with unequal lengths: attempted '%s' -> '%s'\n"
 msgstr "%s: 不能修正长度不等的字符串: 试图修正 '%s' -> '%s'\n"
 
-#: src/main.c:55
+#: src/main.c:34
+#, c-format
+msgid "[1;33m# 昇龍 (Shēnglóng)[m\n\n"
+msgstr "[1;33m# 昇龍 (Shēnglóng)[m\n\n"
+
+#: src/main.c:42
+#, c-format
+msgid "System info probing only available in native LoongArch builds.\n\n"
+msgstr "只有为 LoongArch 原生编译的本程序才能进行系统信息检测。\n\n"
+
+#: src/main.c:77
 msgid "produce more (debugging) output"
 msgstr "产生更多（调试用的）输出"
 
-#: src/main.c:56
+#: src/main.c:78
 msgid "don't actually patch the files"
 msgstr "不要真去修正文件"
 
-#: src/main.c:57
+#: src/main.c:79
 msgid "migrate from this glibc symbol version"
 msgstr "从这个 glibc 符号版本迁移走"
 
-#: src/main.c:58
+#: src/main.c:80
 msgid "migrate to this glibc symbol version"
 msgstr "迁移到这个 glibc 符号版本"
 
-#: src/main.c:59
+#: src/main.c:81
 msgid "scan for syscall ABI incompatibility, don't patch files"
 msgstr "扫描系统调用 ABI 不兼容之处，不要修正文件"
 
-#: src/main.c:65
+#: src/main.c:87
 msgid "<root dirs>"
 msgstr "<系统根目录>"
 
-#: src/main.c:82
+#: src/main.c:105
 msgid "at least one directory argument is required"
 msgstr "至少需要传入一个目录参数"
 
-#: src/main.c:96
+#: src/main.c:119
 #, c-format
 msgid "libelf initialization failed: %s"
 msgstr "libelf 初始化失败: %s"
 
-#: src/processing.c:32
+#: src/processing.c:33
 #, c-format
 msgid "elf_begin on %s (fd %d) failed: %s\n"
 msgstr "在 %s (文件描述符 %d) 上 elf_begin 失败: %s\n"
 
-#: src/processing.c:88
+#: src/processing.c:89
 #, c-format
 msgid "%s: ignoring: not ELF64 file\n"
 msgstr "%s: 忽略: 不是 ELF64 文件\n"
 
-#: src/processing.c:96
+#: src/processing.c:97
 #, c-format
 msgid "%s: ignoring: not little-endian\n"
 msgstr "%s: 忽略: 字节序不是小端\n"
 
-#: src/processing.c:107
+#: src/processing.c:108
 #, c-format
 msgid "%s: ignoring: not LoongArch file: e_machine = %d != %d\n"
 msgstr "%s: 忽略: 不是 LoongArch 文件: e_machine = %d != %d\n"
 
-#: src/processing.c:125
+#: src/processing.c:126
 #, c-format
 msgid "%s: ignoring: malformed file: no shstrndx\n"
 msgstr "%s: 忽略: 文件格式非预期: 没有 shstrndx\n"
 
-#: src/processing.c:158
+#: src/processing.c:159
 #, c-format
 msgid "%s: ignoring: malformed file: cannot get section name\n"
 msgstr "%s: 忽略: 文件格式非预期: 无法获取段的名称\n"
 
-#: src/processing.c:268
+#: src/processing.c:269
 #, c-format
 msgid "writing %s\n"
 msgstr "写入 %s\n"
 
-#: src/processing.c:270
+#: src/processing.c:271
 #, c-format
 msgid "patching %s\n"
 msgstr "修正 %s\n"
 
-#: src/processing.c:277
+#: src/processing.c:278
 #, c-format
 msgid "%s: elf_update failed: %s\n"
 msgstr "%s: elf_update 失败: %s\n"
 
-#: src/processing.c:315
+#: src/processing.c:316
 #, c-format
 msgid "%s: symbol version %s at idx %zd needs patching\n"
 msgstr "%s: 符号版本 %s (序号 %zd) 需要修正\n"
 
-#: src/processing.c:320
+#: src/processing.c:321
 #, c-format
 msgid "%s: patching symbol version %s at idx %zd -> %s\n"
 msgstr "%s: 修正符号版本 %s (序号 %zd) -> %s\n"
 
-#: src/processing.c:359
+#: src/processing.c:360
 #, c-format
 msgid "%s: verdef %zd: %s needs patching\n"
 msgstr "%s: verdef %zd: %s 需要修正\n"
 
-#: src/processing.c:368
+#: src/processing.c:369
 #, c-format
 msgid "%s: patching verdef %zd -> %s\n"
 msgstr "%s: 修正 verdef %zd -> %s\n"
 
-#: src/processing.c:417
+#: src/processing.c:418
 #, c-format
 msgid "%s: verneed %zd: aux %zd name %s needs patching\n"
 msgstr "%s: verneed %zd: aux %zd 名称为 %s 需要修正\n"
 
-#: src/processing.c:428
+#: src/processing.c:429
 #, c-format
 msgid "%s: patching verneed %zd aux %zd %s -> %s\n"
 msgstr "%s: 修正 verneed %zd aux %zd %s -> %s\n"
 
-#: src/processing_ldso.c:43
+#: src/processing_ldso.c:44
 #, c-format
 msgid "%s: hard-coded symbol version in .rodata: %s (offset %zd) needs patching\n"
 msgstr "%s: .rodata 中写死的符号版本: %s (偏移量 %zd) 需要修正\n"
 
-#: src/processing_ldso.c:53
+#: src/processing_ldso.c:54
 #, c-format
 msgid "%s: patching hard-coded symbol version in .rodata: %s (offset %zd) -> %s\n"
 msgstr "%s: 修正 .rodata 中写死的符号版本: %s (偏移量 %zd) -> %s\n"
 
-#: src/processing_ldso.c:141
+#: src/processing_ldso.c:142
 #, c-format
 msgid "%s: old hash in .text needs patching: lu12i.w offset %zd, ori offset %zd\n"
 msgstr "%s: .text 中的旧哈希值需要修正: lu12i.w 偏移量 %zd, ori 偏移量 %zd\n"
 
-#: src/processing_ldso.c:157
+#: src/processing_ldso.c:158
 #, c-format
 msgid "%s: patching old hash in .text: lu12i.w offset %zd %08x -> %08x, ori offset %zd %08x -> %08x\n"
 msgstr "%s: 修正 .text 中的旧哈希值: lu12i.w 偏移量 %zd %08x -> %08x, ori 偏移量 %zd %08x -> %08x\n"
 
-#: src/processing_syscall_abi.c:131
+#: src/processing_syscall_abi.c:132
 #, c-format
 msgid "%s: usage of removed syscall `%s` at .text+0x%zx\n"
 msgstr "%s: 使用了已删除的系统调用 `%s` (在 .text+0x%zx)\n"
 
-#: src/processing_syscall_abi.c:144
+#: src/processing_syscall_abi.c:145
 #, c-format
 msgid "\n"
 "        [31m╔═══════════════════════════════════════════════════════════╗[m\n"

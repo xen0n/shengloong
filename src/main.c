@@ -28,7 +28,20 @@
 
 struct sl_cfg global_cfg;
 
-/////////////////////////////////////////////////////////////////////////////
+// Probes and prints basic system info if running natively.
+static void print_sysinfo(void)
+{
+    fprintf(stderr, _("\x1b[1;33m# 昇龍 (Shēnglóng)\x1b[m\n\n"));
+
+#ifdef __loongarch__
+    // TODO: new/old-world status of userland
+    // TODO: new/old-world status of firmware (if possible)
+    // TODO: glibc symbol version of self
+    // TODO: deprecated syscall usage of /lib64/libc.so.6
+#else
+    fprintf(stderr, _("System info probing only available in native LoongArch builds.\n\n"));
+#endif
+}
 
 static void
 __attribute__((noreturn))
@@ -73,6 +86,7 @@ int main(int argc, const char *argv[])
     poptContext pctx = poptGetContext(NULL, argc, argv, options, 0);
     poptSetOtherOptionHelp(pctx, _("<root dirs>"));
     if (argc < 2) {
+        print_sysinfo();
         usage(pctx, NULL);
     }
 
