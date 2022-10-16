@@ -77,7 +77,7 @@ int main(int argc, const char *argv[])
         { "verbose", 'v', POPT_ARG_NONE, &cfg.verbose, 0, _("produce more (debugging) output"), NULL },
         { "pretend", 'p', POPT_ARG_NONE, &cfg.dry_run, 0, _("don't actually patch the files"), NULL },
         { "from-ver", 'f', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cfg.from_ver, 0, _("migrate from this glibc symbol version"), "GLIBC_2.3x" },
-        { "to-ver", 't', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cfg.to_ver, 0, _("migrate to this glibc symbol version"), "GLIBC_2.3y" },
+        { "to-ver", 't', POPT_ARG_STRING, NULL, 0, _("deprecated; no effect now"), NULL },
         { "check-syscall-abi", 'a', POPT_ARG_NONE, &cfg.check_syscall_abi, 0, _("scan for syscall ABI incompatibility, don't patch files"), NULL },
         POPT_AUTOHELP
         POPT_TABLEEND

@@ -5,11 +5,11 @@
 ![GitHub license info](https://img.shields.io/github/license/xen0n/shengloong)
 
 **昇龍** upgrades your LoongArch system with outdated glibc symbol version *in-place*,
-to a newer symbol version, so you don't have to re-install from scratch if
-glibc 2.36 is released but without the LoongArch port upstreamed.
+to `GLIBC_2.36`, and checks your system for other obsolete ABI features so
+your system stays on the bleeding-edge upstreamed ABI without having to get
+reinstalled from time to time.
 For everyone else this is pretty much useless, and the project is bound to be
-obsoleted in a year or two, after the LoongArch port goes upstream making the
-ABI stable.
+obsoleted in a year or two, after the LoongArch ABI fully matures.
 
 **昇龍** (Simplified Chinese: 升龙) means "rising dragon", also literally
 "upgrade loong", which is exactly what this tool does.
@@ -82,8 +82,7 @@ Usage: shengloong <root dirs>
   -p, --pretend                 don't actually patch the files
   -f, --from-ver=GLIBC_2.3x     migrate from this glibc symbol version
                                 (default: "GLIBC_2.35")
-  -t, --to-ver=GLIBC_2.3y       migrate to this glibc symbol version (default:
-                                "GLIBC_2.36")
+  -t, --to-ver=STRING           deprecated; no effect now
   -a, --check-syscall-abi       scan for syscall ABI incompatibility, don't
                                 patch files
 
@@ -100,9 +99,6 @@ sudo shengloong -p /path/to/sysroot
 
 # execute the migration
 sudo shengloong /path/to/sysroot
-
-# in case we have to migrate again to GLIBC_2.37 from a 2.36 sysroot
-sudo shengloong -f GLIBC_2.36 -t GLIBC_2.37 /path/to/sysroot
 
 # after the migration, you may also check if you have to get rid of newfstatat
 # usage in your system
