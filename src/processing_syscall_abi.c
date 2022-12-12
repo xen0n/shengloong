@@ -61,7 +61,7 @@ static bool is_clobbering_rd(uint32_t insn, int rd)
 // how many insns to look back for syscall number
 #define MAX_REVERSE_SEARCH_WINDOW 20
 
-void scan_for_fstatxx(struct sl_elf_ctx *ctx, Elf_Scn *s)
+void scan_for_removed_syscalls(struct sl_elf_ctx *ctx, Elf_Scn *s)
 {
     Elf_Data *d = NULL;
     while ((d = elf_getdata(s, d)) != NULL) {
@@ -119,6 +119,14 @@ void scan_for_fstatxx(struct sl_elf_ctx *ctx, Elf_Scn *s)
 
             case 80:
                 problematic_syscall = "fstat";
+                break;
+
+            case 163:
+                problematic_syscall = "getrlimit";
+                break;
+
+            case 164:
+                problematic_syscall = "setrlimit";
                 break;
             }
 

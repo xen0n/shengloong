@@ -5,7 +5,7 @@
 
 #include "ctx.h"
 
-void scan_for_fstatxx(struct sl_elf_ctx *ctx, Elf_Scn *s);
+void scan_for_removed_syscalls(struct sl_elf_ctx *ctx, Elf_Scn *s);
 void print_final_report(void);
 
 #endif  // _shengloong_processing_syscall_abi_h

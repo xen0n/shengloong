@@ -212,7 +212,7 @@ static int process_elf(struct sl_elf_ctx *ctx)
 
     if (ctx->cfg->check_syscall_abi) {
         if (s_text) {
-            scan_for_fstatxx(ctx, s_text);
+            scan_for_removed_syscalls(ctx, s_text);
         }
         return 0;
     }
