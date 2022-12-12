@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: shengloong\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-05-28 15:04+0800\n"
+"POT-Creation-Date: 2022-12-12 13:53+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -49,7 +49,7 @@ msgid "migrate from this glibc symbol version"
 msgstr ""
 
 #: src/main.c:80
-msgid "migrate to this glibc symbol version"
+msgid "deprecated; no effect now"
 msgstr ""
 
 #: src/main.c:81
@@ -164,12 +164,12 @@ msgstr ""
 msgid "%s: patching old hash in .text: lu12i.w offset %zd %08x -> %08x, ori offset %zd %08x -> %08x\n"
 msgstr ""
 
-#: src/processing_syscall_abi.c:132
+#: src/processing_syscall_abi.c:140
 #, c-format
 msgid "%s: usage of removed syscall `%s` at .text+0x%zx\n"
 msgstr ""
 
-#: src/processing_syscall_abi.c:145
+#: src/processing_syscall_abi.c:153
 #, c-format
 msgid ""
 "\n"
@@ -188,7 +188,7 @@ msgid ""
 "\n"
 msgstr ""
 
-#: src/processing_syscall_abi.c:164
+#: src/processing_syscall_abi.c:172
 #, c-format
 msgid ""
 "[32m\n"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: shengloong\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-05-28 15:04+0800\n"
+"POT-Creation-Date: 2022-12-12 13:53+0800\n"
 "PO-Revision-Date: 2022-05-24 09:47+0800\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -44,8 +44,8 @@ msgid "migrate from this glibc symbol version"
 msgstr "从这个 glibc 符号版本迁移走"
 
 #: src/main.c:80
-msgid "migrate to this glibc symbol version"
-msgstr "迁移到这个 glibc 符号版本"
+msgid "deprecated; no effect now"
+msgstr "该参数已弃用；传入不会生效"
 
 #: src/main.c:81
 msgid "scan for syscall ABI incompatibility, don't patch files"
@@ -159,12 +159,12 @@ msgstr "%s: .text 中的旧哈希值需要修正: lu12i.w 偏移量 %zd, ori 偏
 msgid "%s: patching old hash in .text: lu12i.w offset %zd %08x -> %08x, ori offset %zd %08x -> %08x\n"
 msgstr "%s: 修正 .text 中的旧哈希值: lu12i.w 偏移量 %zd %08x -> %08x, ori 偏移量 %zd %08x -> %08x\n"
 
-#: src/processing_syscall_abi.c:132
+#: src/processing_syscall_abi.c:140
 #, c-format
 msgid "%s: usage of removed syscall `%s` at .text+0x%zx\n"
 msgstr "%s: 使用了已删除的系统调用 `%s` (在 .text+0x%zx)\n"
 
-#: src/processing_syscall_abi.c:145
+#: src/processing_syscall_abi.c:153
 #, c-format
 msgid "\n"
 "        [31m╔═══════════════════════════════════════════════════════════╗[m\n"
@@ -180,31 +180,41 @@ msgid "\n"
 "   You can run [32mshengloong -a[m again, after you have upgraded the libc,\n"
 "   if unsure.\n"
 "\n"
-msgstr "\n"
+msgstr ""
+"\n"
 "        [31m╔═══════════════════════════════════════════════════════════╗[m\n"
 "        [31m║                                                           ║[m\n"
-"        [31m║[m 您需要[1;31m在重启[m进不支持这些系统调用的内核[1;31m之前升级您的 libc！[m [31m║[m\n"
+"        [31m║[m 您需要[1;31m在重启[m进不支持这些系统调用的内核[1;31m之前升级"
+"您的 libc！[m [31m║[m\n"
 "        [31m║                                                           ║[m\n"
 "        [31m╚═══════════════════════════════════════════════════════════╝[m\n"
 "\n"
-" [32m*[m 如果以上输出包含其他非 libc 的程序，它们在 libc 升级之后也要重新构建。\n"
+" [32m*[m 如果以上输出包含其他非 libc 的程序，它们在 libc 升级之后也要重新构"
+"建。\n"
 "\n"
 "   如果不确定的话，您可在 libc 升级之后再跑一遍 [32mshengloong -a[m 看看。\n"
 "\n"
 
-#: src/processing_syscall_abi.c:163
+#: src/processing_syscall_abi.c:172
 #, c-format
-msgid "[32m\n"
+msgid ""
+"[32m\n"
 "        ╔═════════════════════════════════════════════════════════╗\n"
 "        ║                                                         ║\n"
-"        ║  [1mNo deprecated syscall usage was found on your system![0;32m  ║\n"
+"        ║  [1mNo deprecated syscall usage was found on your system![0;32m  "
+"║\n"
 "        ║                                                         ║\n"
 "        ╚═════════════════════════════════════════════════════════╝\n"
 "[m\n"
-msgstr "[32m\n"
+msgstr ""
+"[32m\n"
 "        ╔═════════════════════════════════════════════════════════╗\n"
 "        ║                                                         ║\n"
-"        ║            [1m您的系统没有使用过时的系统调用！[0;32m             ║\n"
+"        ║            [1m您的系统没有使用过时的系统调用！[0;32m             "
+"║\n"
 "        ║                                                         ║\n"
 "        ╚═════════════════════════════════════════════════════════╝\n"
 "[m\n"
+
+#~ msgid "migrate to this glibc symbol version"
+#~ msgstr "迁移到这个 glibc 符号版本"
