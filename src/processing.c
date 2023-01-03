@@ -11,6 +11,7 @@
 #include "gettext.h"
 #include "processing.h"
 #include "processing_ldso.h"
+#include "processing_objabi.h"
 #include "processing_syscall_abi.h"
 #include "utils.h"
 
@@ -111,6 +112,12 @@ static int process_elf(struct sl_elf_ctx *ctx)
                 EM_LOONGARCH
             );
         }
+        return 0;
+    }
+
+    // check object file ABI
+    if (ctx->cfg->check_objabi) {
+        check_objabi(ctx, ehdr->e_flags);
         return 0;
     }
 

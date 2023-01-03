@@ -9,8 +9,9 @@ struct sl_cfg {
     int verbose;
     int dry_run;
 
-    // when this is on, don't do the patching
+    // when these are on, don't do the patching
     int check_syscall_abi;
+    int check_objabi;
 
     const char *from_ver;
     const char *to_ver;

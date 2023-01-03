@@ -85,6 +85,8 @@ Usage: shengloong <root dirs>
   -t, --to-ver=STRING           deprecated; no effect now
   -a, --check-syscall-abi       scan for syscall ABI incompatibility, don't
                                 patch files
+  -o, --check-objabi            scan for obsolete object file ABI usage, don't
+                                patch files
 
 Help options:
   -?, --help                    Show this help message
@@ -106,7 +108,15 @@ sudo shengloong -a /path/sysroot
 
 # you could also migrate multiple sysroots in one invocation
 sudo shengloong /sysroot/a /sysroot/b
+
+# for fresher installations (those after 2022-08 but before early 2023), you
+# could preemptively check for lingering object file ABI v0 usage, to avoid
+# having problems with newer upstream toolchain components such as lld or mold
+sudo shengloong -o /path/to/sysroot
 ```
+
+The examples are `sudo`-prefixed to avoid having insufficient permissions
+while reading certain privileged executables and/or libraries.
 
 ## License
 

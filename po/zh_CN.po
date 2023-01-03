@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: shengloong\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-12-12 13:53+0800\n"
+"POT-Creation-Date: 2023-01-03 23:27+0800\n"
 "PO-Revision-Date: 2022-05-24 09:47+0800\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -21,120 +21,124 @@ msgstr ""
 msgid "%s: cannot patch string with unequal lengths: attempted '%s' -> '%s'\n"
 msgstr "%s: 不能修正长度不等的字符串: 试图修正 '%s' -> '%s'\n"
 
-#: src/main.c:34
+#: src/main.c:35
 #, c-format
 msgid "[1;33m# 昇龍 (Shēnglóng)[m\n\n"
 msgstr "[1;33m# 昇龍 (Shēnglóng)[m\n\n"
 
-#: src/main.c:42
+#: src/main.c:43
 #, c-format
 msgid "System info probing only available in native LoongArch builds.\n\n"
 msgstr "只有为 LoongArch 原生编译的本程序才能进行系统信息检测。\n\n"
 
-#: src/main.c:77
+#: src/main.c:78
 msgid "produce more (debugging) output"
 msgstr "产生更多（调试用的）输出"
 
-#: src/main.c:78
+#: src/main.c:79
 msgid "don't actually patch the files"
 msgstr "不要真去修正文件"
 
-#: src/main.c:79
+#: src/main.c:80
 msgid "migrate from this glibc symbol version"
 msgstr "从这个 glibc 符号版本迁移走"
 
-#: src/main.c:80
+#: src/main.c:81
 msgid "deprecated; no effect now"
 msgstr "该参数已弃用；传入不会生效"
 
-#: src/main.c:81
+#: src/main.c:82
 msgid "scan for syscall ABI incompatibility, don't patch files"
 msgstr "扫描系统调用 ABI 不兼容之处，不要修正文件"
 
-#: src/main.c:87
+#: src/main.c:83
+msgid "scan for obsolete object file ABI usage, don't patch files"
+msgstr "扫描哪些文件在使用老旧目标文件 ABI，不要修正文件"
+
+#: src/main.c:89
 msgid "<root dirs>"
 msgstr "<系统根目录>"
 
-#: src/main.c:105
+#: src/main.c:107
 msgid "at least one directory argument is required"
 msgstr "至少需要传入一个目录参数"
 
-#: src/main.c:119
+#: src/main.c:121
 #, c-format
 msgid "libelf initialization failed: %s"
 msgstr "libelf 初始化失败: %s"
 
-#: src/processing.c:33
+#: src/processing.c:34
 #, c-format
 msgid "elf_begin on %s (fd %d) failed: %s\n"
 msgstr "在 %s (文件描述符 %d) 上 elf_begin 失败: %s\n"
 
-#: src/processing.c:89
+#: src/processing.c:90
 #, c-format
 msgid "%s: ignoring: not ELF64 file\n"
 msgstr "%s: 忽略: 不是 ELF64 文件\n"
 
-#: src/processing.c:97
+#: src/processing.c:98
 #, c-format
 msgid "%s: ignoring: not little-endian\n"
 msgstr "%s: 忽略: 字节序不是小端\n"
 
-#: src/processing.c:108
+#: src/processing.c:109
 #, c-format
 msgid "%s: ignoring: not LoongArch file: e_machine = %d != %d\n"
 msgstr "%s: 忽略: 不是 LoongArch 文件: e_machine = %d != %d\n"
 
-#: src/processing.c:126
+#: src/processing.c:133
 #, c-format
 msgid "%s: ignoring: malformed file: no shstrndx\n"
 msgstr "%s: 忽略: 文件格式非预期: 没有 shstrndx\n"
 
-#: src/processing.c:159
+#: src/processing.c:166
 #, c-format
 msgid "%s: ignoring: malformed file: cannot get section name\n"
 msgstr "%s: 忽略: 文件格式非预期: 无法获取段的名称\n"
 
-#: src/processing.c:269
+#: src/processing.c:276
 #, c-format
 msgid "writing %s\n"
 msgstr "写入 %s\n"
 
-#: src/processing.c:271
+#: src/processing.c:278
 #, c-format
 msgid "patching %s\n"
 msgstr "修正 %s\n"
 
-#: src/processing.c:278
+#: src/processing.c:285
 #, c-format
 msgid "%s: elf_update failed: %s\n"
 msgstr "%s: elf_update 失败: %s\n"
 
-#: src/processing.c:316
+#: src/processing.c:323
 #, c-format
 msgid "%s: symbol version %s at idx %zd needs patching\n"
 msgstr "%s: 符号版本 %s (序号 %zd) 需要修正\n"
 
-#: src/processing.c:321
+#: src/processing.c:328
 #, c-format
 msgid "%s: patching symbol version %s at idx %zd -> %s\n"
 msgstr "%s: 修正符号版本 %s (序号 %zd) -> %s\n"
 
-#: src/processing.c:360
+#: src/processing.c:367
 #, c-format
 msgid "%s: verdef %zd: %s needs patching\n"
 msgstr "%s: verdef %zd: %s 需要修正\n"
 
-#: src/processing.c:369
+#: src/processing.c:376
 #, c-format
 msgid "%s: patching verdef %zd -> %s\n"
 msgstr "%s: 修正 verdef %zd -> %s\n"
 
-#: src/processing.c:418
+#: src/processing.c:425
 #, c-format
 msgid "%s: verneed %zd: aux %zd name %s needs patching\n"
 msgstr "%s: verneed %zd: aux %zd 名称为 %s 需要修正\n"
 
-#: src/processing.c:429
+#: src/processing.c:436
 #, c-format
 msgid "%s: patching verneed %zd aux %zd %s -> %s\n"
 msgstr "%s: 修正 verneed %zd aux %zd %s -> %s\n"
@@ -158,6 +162,40 @@ msgstr "%s: .text 中的旧哈希值需要修正: lu12i.w 偏移量 %zd, ori 偏
 #, c-format
 msgid "%s: patching old hash in .text: lu12i.w offset %zd %08x -> %08x, ori offset %zd %08x -> %08x\n"
 msgstr "%s: 修正 .text 中的旧哈希值: lu12i.w 偏移量 %zd %08x -> %08x, ori 偏移量 %zd %08x -> %08x\n"
+
+#: src/processing_objabi.c:31
+#, c-format
+msgid "%s: file uses obsolete object file ABI: e_flags=0x%x\n"
+msgstr "%s: 文件在使用老旧的目标文件 ABI: e_flags=0x%x\n"
+
+#: src/processing_objabi.c:41
+#, c-format
+msgid ""
+"\n"
+"[31m * [mYour system has file(s) using obsolete object file ABI.\n"
+"   This may not play well with current or future toolchain components.\n"
+"\n"
+"   You may have to rebuild the affected packages or simply re-install your\n"
+"   system to fix this.\n"
+"\n"
+msgstr ""
+"\n"
+"[31m * [m您的系统有些文件在使用老旧的目标文件 ABI。\n"
+"   这可能会给当前或未来的工具链组件造成问题。\n"
+"\n"
+"   您可能需要重新构建涉及到的软件包，或者重装系统来修复此问题。\n"
+"\n"
+
+#: src/processing_objabi.c:53
+#, c-format
+msgid ""
+"\n"
+"[32m * [mNo obsolete object file ABI usage was found on your system!\n"
+"\n"
+msgstr ""
+"\n"
+"[32m * [m在您系统上没有发现老旧目标文件 ABI 的使用！\n"
+"\n"
 
 #: src/processing_syscall_abi.c:140
 #, c-format

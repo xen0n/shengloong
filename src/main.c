@@ -19,6 +19,7 @@
 #include "ctx.h"
 #include "elfcompat.h"
 #include "gettext.h"
+#include "processing_objabi.h"
 #include "processing_syscall_abi.h"
 #include "utils.h"
 #include "walkdir.h"
@@ -79,6 +80,7 @@ int main(int argc, const char *argv[])
         { "from-ver", 'f', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cfg.from_ver, 0, _("migrate from this glibc symbol version"), "GLIBC_2.3x" },
         { "to-ver", 't', POPT_ARG_STRING, NULL, 0, _("deprecated; no effect now"), NULL },
         { "check-syscall-abi", 'a', POPT_ARG_NONE, &cfg.check_syscall_abi, 0, _("scan for syscall ABI incompatibility, don't patch files"), NULL },
+        { "check-objabi", 'o', POPT_ARG_NONE, &cfg.check_objabi, 0, _("scan for obsolete object file ABI usage, don't patch files"), NULL },
         POPT_AUTOHELP
         POPT_TABLEEND
     };
@@ -108,7 +110,7 @@ int main(int argc, const char *argv[])
     cfg.from_elfhash = bfd_elf_hash(cfg.from_ver);
     cfg.to_elfhash = bfd_elf_hash(cfg.to_ver);
 
-    if (cfg.check_syscall_abi) {
+    if (cfg.check_syscall_abi || cfg.check_objabi) {
         cfg.dry_run = 1;
     }
 
@@ -128,10 +130,13 @@ int main(int argc, const char *argv[])
         }
     }
 
+    if (cfg.check_objabi) {
+        objabi_print_final_report();
+    }
+
     if (cfg.check_syscall_abi) {
         print_final_report();
     }
-
 
     poptFreeContext(pctx);
 
