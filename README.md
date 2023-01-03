@@ -1,6 +1,6 @@
 # 昇龍 (Shēnglóng; ShengLoong)
 
-![GitHub Workflow Status (main branch)](https://img.shields.io/github/workflow/status/xen0n/shengloong/meson/main)
+![GitHub Workflow Status (main branch)](https://img.shields.io/github/workflow/status/xen0n/shengloong/meson.yml?branch=main)
 ![Codecov](https://img.shields.io/codecov/c/gh/xen0n/shengloong)
 ![GitHub license info](https://img.shields.io/github/license/xen0n/shengloong)
 
