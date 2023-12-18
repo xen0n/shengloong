@@ -40,7 +40,7 @@ jobs:
     - name: Generate and upload coverage
       run: ninja -C builddir/ coverage-xml && bash <(curl -s https://codecov.io/bash)
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: meson-testlog
