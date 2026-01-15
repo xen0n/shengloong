@@ -46,12 +46,23 @@ static void add_version(const char *library, const char *version)
     }
     
     struct version_info *new_entry = malloc(sizeof(struct version_info));
-    if (new_entry != NULL) {
-        new_entry->library = strdup(library);
-        new_entry->version = strdup(version);
-        new_entry->next = g_version_list;
-        g_version_list = new_entry;
+    if (new_entry == NULL) {
+        return;
     }
+    
+    new_entry->library = strdup(library);
+    new_entry->version = strdup(version);
+    
+    // Check if strdup failed
+    if (new_entry->library == NULL || new_entry->version == NULL) {
+        free(new_entry->library);
+        free(new_entry->version);
+        free(new_entry);
+        return;
+    }
+    
+    new_entry->next = g_version_list;
+    g_version_list = new_entry;
 }
 
 void collect_symbol_versions(struct sl_elf_ctx *ctx, Elf_Scn *scn, size_t n)

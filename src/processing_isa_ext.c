@@ -202,8 +202,14 @@ void scan_for_isa_extensions(struct sl_elf_ctx *ctx, Elf_Scn *s)
     
     Elf_Data *d = NULL;
     while ((d = elf_getdata(s, d)) != NULL) {
+        // Check for null buffer
+        if (d->d_buf == NULL || d->d_size == 0) {
+            continue;
+        }
+        
         uint32_t *p = d->d_buf;
-        uint32_t *end = (uint32_t *)((uint8_t *)d->d_buf + d->d_size);
+        // Ensure buffer size is properly aligned for uint32_t access
+        uint32_t *end = (uint32_t *)((uint8_t *)d->d_buf + (d->d_size & ~3));
         
         for (; p < end; p++) {
             uint32_t insn = READ_INSN(p);
@@ -253,12 +259,19 @@ void scan_for_isa_extensions(struct sl_elf_ctx *ctx, Elf_Scn *s)
         
         // Add new entry
         struct isa_ext_usage *new_entry = malloc(sizeof(struct isa_ext_usage));
-        if (new_entry != NULL) {
-            new_entry->path = strdup(ctx->path);
-            new_entry->extensions = extensions;
-            new_entry->next = g_isa_ext_list;
-            g_isa_ext_list = new_entry;
+        if (new_entry == NULL) {
+            return;
         }
+        
+        new_entry->path = strdup(ctx->path);
+        if (new_entry->path == NULL) {
+            free(new_entry);
+            return;
+        }
+        
+        new_entry->extensions = extensions;
+        new_entry->next = g_isa_ext_list;
+        g_isa_ext_list = new_entry;
     }
 }
 

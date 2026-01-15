@@ -110,12 +110,19 @@ done_scanning:
         
         // Add new entry
         struct abi_feature_usage *new_entry = malloc(sizeof(struct abi_feature_usage));
-        if (new_entry != NULL) {
-            new_entry->path = strdup(ctx->path);
-            new_entry->features = features;
-            new_entry->next = g_abi_feature_list;
-            g_abi_feature_list = new_entry;
+        if (new_entry == NULL) {
+            return;
         }
+        
+        new_entry->path = strdup(ctx->path);
+        if (new_entry->path == NULL) {
+            free(new_entry);
+            return;
+        }
+        
+        new_entry->features = features;
+        new_entry->next = g_abi_feature_list;
+        g_abi_feature_list = new_entry;
     }
 }
 
