@@ -38,12 +38,9 @@ static bool is_lsx_insn(uint32_t insn)
         return true;
     }
     
-    // LSX floating-point multiply-add/sub
-    if (op_high >= 0x09000000 && op_high <= 0x09000000) {
-        uint32_t op_full = insn & 0xff000000;
-        if (op_full == 0x09000000) {
-            return true;  // vfmadd, vfmsub, vfnmadd, vfnmsub
-        }
+    // LSX floating-point multiply-add/sub (0x09xxxxxx range)
+    if (op_high == 0x09000000) {
+        return true;  // vfmadd, vfmsub, vfnmadd, vfnmsub
     }
     
     // LSX floating-point compare
