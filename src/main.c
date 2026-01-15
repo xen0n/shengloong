@@ -19,7 +19,10 @@
 #include "ctx.h"
 #include "elfcompat.h"
 #include "gettext.h"
+#include "processing_abi_features.h"
+#include "processing_isa_ext.h"
 #include "processing_objabi.h"
+#include "processing_symbol_versions.h"
 #include "processing_syscall_abi.h"
 #include "utils.h"
 #include "walkdir.h"
@@ -81,6 +84,9 @@ int main(int argc, const char *argv[])
         { "to-ver", 't', POPT_ARG_STRING, NULL, 0, _("deprecated; no effect now"), NULL },
         { "check-syscall-abi", 'a', POPT_ARG_NONE, &cfg.check_syscall_abi, 0, _("scan for syscall ABI incompatibility, don't patch files"), NULL },
         { "check-objabi", 'o', POPT_ARG_NONE, &cfg.check_objabi, 0, _("scan for obsolete object file ABI usage, don't patch files"), NULL },
+        { "check-isa-ext", 'i', POPT_ARG_NONE, &cfg.check_isa_ext, 0, _("scan for ISA extension usage (LSX/LASX/LBT/LVZ), don't patch files"), NULL },
+        { "check-abi-features", 'b', POPT_ARG_NONE, &cfg.check_abi_features, 0, _("scan for novel ABI features (TLSDESC/DT_RELR), don't patch files"), NULL },
+        { "check-symbol-versions", 's', POPT_ARG_NONE, &cfg.check_symbol_versions, 0, _("report symbol version dependencies (VERNEED), don't patch files"), NULL },
         POPT_AUTOHELP
         POPT_TABLEEND
     };
@@ -110,7 +116,8 @@ int main(int argc, const char *argv[])
     cfg.from_elfhash = bfd_elf_hash(cfg.from_ver);
     cfg.to_elfhash = bfd_elf_hash(cfg.to_ver);
 
-    if (cfg.check_syscall_abi || cfg.check_objabi) {
+    if (cfg.check_syscall_abi || cfg.check_objabi || cfg.check_isa_ext || 
+        cfg.check_abi_features || cfg.check_symbol_versions) {
         cfg.dry_run = 1;
     }
 
@@ -136,6 +143,18 @@ int main(int argc, const char *argv[])
 
     if (cfg.check_syscall_abi) {
         print_final_report();
+    }
+
+    if (cfg.check_isa_ext) {
+        isa_ext_print_final_report();
+    }
+
+    if (cfg.check_abi_features) {
+        abi_features_print_final_report();
+    }
+
+    if (cfg.check_symbol_versions) {
+        symbol_versions_print_final_report();
     }
 
     poptFreeContext(pctx);
