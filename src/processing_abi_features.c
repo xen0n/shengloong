@@ -51,6 +51,9 @@ void check_abi_features(struct sl_elf_ctx *ctx, Elf *e)
 {
     abi_feature_flags_t features = ABI_FEATURE_NONE;
     
+    // Note: This assumes ELF64, which is already checked in process_elf() before
+    // this function is called. All LoongArch systems use ELF64.
+    
     // Scan dynamic section for DT_RELR and TLSDESC tags
     Elf_Scn *scn = NULL;
     while ((scn = elf_nextscn(e, scn)) != NULL) {

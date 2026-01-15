@@ -208,7 +208,9 @@ void scan_for_isa_extensions(struct sl_elf_ctx *ctx, Elf_Scn *s)
         }
         
         uint32_t *p = d->d_buf;
-        // Ensure buffer size is properly aligned for uint32_t access
+        // Align down to 4-byte boundary - .text sections should be properly aligned,
+        // but we ensure we don't read past the end if size is not a multiple of 4.
+        // Partial instructions at the end can be safely ignored.
         uint32_t *end = (uint32_t *)((uint8_t *)d->d_buf + (d->d_size & ~3));
         
         for (; p < end; p++) {

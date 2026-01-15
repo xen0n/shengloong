@@ -70,6 +70,10 @@ void collect_symbol_versions(struct sl_elf_ctx *ctx, Elf_Scn *scn, size_t n)
     size_t i = 0;
     Elf_Data *d = NULL;
     
+    // Note: This uses Elf64_Verneed types, which is safe because process_elf()
+    // already checks for ELF64 before calling this function. All LoongArch
+    // systems use ELF64.
+    
     while (i < n && (d = elf_getdata(scn, d)) != NULL) {
         Elf64_Verneed *vn = (Elf64_Verneed *)(d->d_buf);
         while (i < n) {
