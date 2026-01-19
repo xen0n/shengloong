@@ -39,67 +39,31 @@ def parse_opcodes(file_path):
 
 def build_mask_table(opcodes):
     """
-    Build an efficient mask table by grouping opcodes with common prefixes.
-    Returns list of (mask, set of values) for checking.
+    Build exact opcode matches for precise classification.
+    Returns list of exact opcodes to match.
     """
-    # Strategy: Group opcodes by common high-order bits
-    # For each mask level, only include opcodes that aren't covered by
-    # more specific masks
-    
-    common_masks = [
-        0xffffffff,  # Exact match
-        0xffffff00,  # Top 24 bits
-        0xfffff000,  # Top 20 bits
-        0xffff0000,  # Top 16 bits
-        0xfff00000,  # Top 12 bits
-        0xffc00000,  # Top 10 bits
-        0xff000000,  # Top 8 bits
-    ]
-    
-    # Collect all unique (mask, value) pairs
-    all_patterns = set()
-    for opcode, mnemonic in opcodes:
-        for mask in common_masks:
-            value = opcode & mask
-            all_patterns.add((mask, value))
-    
-    # Group by mask and return only the unique values for each mask
-    result = []
-    for mask in common_masks:
-        values = sorted({value for m, value in all_patterns if m == mask})
-        if values:
-            result.append((mask, values))
-    
-    return result
+    # Simply return all unique opcodes - we want exact matching
+    # to avoid any false positives
+    return sorted(set(opcode for opcode, _ in opcodes))
 
 
-def generate_classifier(extension_name, mask_table):
+def generate_classifier(extension_name, opcodes):
     """Generate C code for checking if instruction matches extension."""
     lines = []
     lines.append(f"static bool is_{extension_name}_insn(uint32_t insn)")
     lines.append("{")
     
-    if not mask_table:
+    if not opcodes:
         lines.append("    return false;")
         lines.append("}")
         return "\n".join(lines)
     
-    # Generate switch-like structure with masks
-    lines.append("    uint32_t masked;")
-    lines.append("")
-    
-    for mask, values in mask_table:
-        lines.append(f"    masked = insn & 0x{mask:08x};")
-        
-        # Always use switch for consistency and compiler optimization
-        lines.append(f"    switch (masked) {{")
-        for value in values:
-            lines.append(f"        case 0x{value:08x}: return true;")
-        lines.append(f"        default: break;")
-        lines.append(f"    }}")
-        lines.append("")
-    
-    lines.append("    return false;")
+    # Generate a single switch statement with all exact opcodes
+    lines.append("    switch (insn) {")
+    for opcode in opcodes:
+        lines.append(f"        case 0x{opcode:08x}: return true;")
+    lines.append("        default: return false;")
+    lines.append("    }")
     lines.append("}")
     
     return "\n".join(lines)
@@ -143,10 +107,10 @@ def main():
         opcodes = parse_opcodes(ext_file)
         print(f"Loaded {len(opcodes)} {ext_name.upper()} instructions", file=sys.stderr)
         
-        mask_table = build_mask_table(opcodes)
-        print(f"Generated {len(mask_table)} mask groups for {ext_name.upper()}", file=sys.stderr)
+        opcode_list = build_mask_table(opcodes)
+        print(f"Generating classifier with {len(opcode_list)} unique opcodes for {ext_name.upper()}", file=sys.stderr)
         
-        classifier = generate_classifier(ext_name, mask_table)
+        classifier = generate_classifier(ext_name, opcode_list)
         lines.append(classifier)
         lines.append("")
     
