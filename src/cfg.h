@@ -12,6 +12,9 @@ struct sl_cfg {
     // when these are on, don't do the patching
     int check_syscall_abi;
     int check_objabi;
+    int check_isa_ext;
+    int check_abi_features;
+    int check_symbol_versions;
 
     const char *from_ver;
     const char *to_ver;

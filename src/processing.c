@@ -10,8 +10,11 @@
 #include "elfcompat.h"
 #include "gettext.h"
 #include "processing.h"
+#include "processing_abi_features.h"
+#include "processing_isa_ext.h"
 #include "processing_ldso.h"
 #include "processing_objabi.h"
+#include "processing_symbol_versions.h"
 #include "processing_syscall_abi.h"
 #include "utils.h"
 
@@ -121,6 +124,12 @@ static int process_elf(struct sl_elf_ctx *ctx)
         return 0;
     }
 
+    // check ABI features
+    if (ctx->cfg->check_abi_features) {
+        check_abi_features(ctx, e);
+        return 0;
+    }
+
     bool is_ldso = endswith(ctx->path, "ld-linux-loongarch-lp64d.so.1", 29);
 
     size_t shstrndx;
@@ -172,12 +181,17 @@ static int process_elf(struct sl_elf_ctx *ctx)
                 // GCOVR_EXCL_STOP
             }
 
-            if (is_ldso || ctx->cfg->check_syscall_abi) {
+            if (is_ldso || ctx->cfg->check_syscall_abi || ctx->cfg->check_isa_ext) {
                 if (!strcmp(".text", scn_name)) {
                     s_text = scn;
 
-                    if (ctx->cfg->check_syscall_abi) {
-                        // in syscall ABI check mode, only .text is needed
+                    if (ctx->cfg->check_syscall_abi && !ctx->cfg->check_isa_ext) {
+                        // in syscall ABI check mode (without ISA ext check), only .text is needed
+                        break;
+                    }
+                    
+                    if (ctx->cfg->check_isa_ext && !is_ldso && !ctx->cfg->check_syscall_abi) {
+                        // in ISA ext check mode (without other checks), only .text is needed
                         break;
                     }
 
@@ -220,6 +234,20 @@ static int process_elf(struct sl_elf_ctx *ctx)
     if (ctx->cfg->check_syscall_abi) {
         if (s_text) {
             scan_for_removed_syscalls(ctx, s_text);
+        }
+        return 0;
+    }
+
+    if (ctx->cfg->check_isa_ext) {
+        if (s_text) {
+            scan_for_isa_extensions(ctx, s_text);
+        }
+        return 0;
+    }
+
+    if (ctx->cfg->check_symbol_versions) {
+        if (s_gnu_version_r) {
+            collect_symbol_versions(ctx, s_gnu_version_r, nr_gnu_version_r);
         }
         return 0;
     }

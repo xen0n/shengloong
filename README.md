@@ -8,6 +8,14 @@
 to `GLIBC_2.36`, and checks your system for other obsolete ABI features so
 your system stays on the bleeding-edge upstreamed ABI without having to get
 reinstalled from time to time.
+
+**昇龍** also provides tools to analyze and report on:
+- **ISA extension usage**: Detect usage of LSX (128-bit SIMD), LASX (256-bit SIMD), LBT (binary translation), and LVZ (virtualization) instructions
+- **Novel ABI features**: Check for adoption of modern features like TLSDESC and DT_RELR
+- **Symbol version dependencies**: Report baseline glibc and library versions required by binaries
+- **Syscall ABI compatibility**: Scan for removed syscalls like `fstat` and `newfstatat`
+- **Object file ABI version**: Check for obsolete object file ABI v0 usage
+
 For everyone else this is pretty much useless, and the project is bound to be
 obsoleted in a year or two, after the LoongArch ABI fully matures.
 
@@ -87,6 +95,12 @@ Usage: shengloong <root dirs>
                                 patch files
   -o, --check-objabi            scan for obsolete object file ABI usage, don't
                                 patch files
+  -i, --check-isa-ext           scan for ISA extension usage (LSX/LASX/LBT/LVZ),
+                                don't patch files
+  -b, --check-abi-features      scan for novel ABI features (TLSDESC/DT_RELR),
+                                don't patch files
+  -s, --check-symbol-versions   report symbol version dependencies (VERNEED),
+                                don't patch files
 
 Help options:
   -?, --help                    Show this help message
@@ -113,6 +127,15 @@ sudo shengloong /sysroot/a /sysroot/b
 # could preemptively check for lingering object file ABI v0 usage, to avoid
 # having problems with newer upstream toolchain components such as lld or mold
 sudo shengloong -o /path/to/sysroot
+
+# check for ISA extension usage to know if your binaries use LSX/LASX/LBT/LVZ
+sudo shengloong -i /path/to/sysroot
+
+# check for novel ABI features like TLSDESC and DT_RELR
+sudo shengloong -b /path/to/sysroot
+
+# report all symbol version dependencies to understand baseline requirements
+sudo shengloong -s /path/to/sysroot
 ```
 
 The examples are `sudo`-prefixed to avoid having insufficient permissions
