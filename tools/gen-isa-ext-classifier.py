@@ -39,37 +39,36 @@ def parse_opcodes(file_path):
 
 def build_mask_table(opcodes):
     """
-    Build an efficient mask table by finding common high-order bits.
+    Build an efficient mask table by grouping opcodes with common prefixes.
     Returns list of (mask, set of values) for checking.
     """
-    # Strategy: Use high-order byte masking (0xff000000, 0xffc00000, etc.)
-    # to create efficient range checks
+    # Strategy: Group opcodes by common high-order bits
+    # For each mask level, only include opcodes that aren't covered by
+    # more specific masks
     
-    patterns = defaultdict(set)
-    
-    # Try common mask patterns
     common_masks = [
-        0xff000000,  # Top 8 bits
-        0xffc00000,  # Top 10 bits
-        0xfff00000,  # Top 12 bits
-        0xffff0000,  # Top 16 bits
-        0xfffff000,  # Top 20 bits
-        0xffffff00,  # Top 24 bits
         0xffffffff,  # Exact match
+        0xffffff00,  # Top 24 bits
+        0xfffff000,  # Top 20 bits
+        0xffff0000,  # Top 16 bits
+        0xfff00000,  # Top 12 bits
+        0xffc00000,  # Top 10 bits
+        0xff000000,  # Top 8 bits
     ]
     
+    # Collect all unique (mask, value) pairs
+    all_patterns = set()
     for opcode, mnemonic in opcodes:
-        # Find the most general mask that uniquely identifies this instruction
-        # Start with the most specific and work backwards
-        for mask in reversed(common_masks):
+        for mask in common_masks:
             value = opcode & mask
-            patterns[mask].add(value)
+            all_patterns.add((mask, value))
     
-    # Convert to sorted list of (mask, values)
+    # Group by mask and return only the unique values for each mask
     result = []
-    for mask in sorted(common_masks, reverse=True):
-        if mask in patterns and patterns[mask]:
-            result.append((mask, sorted(patterns[mask])))
+    for mask in common_masks:
+        values = sorted({value for m, value in all_patterns if m == mask})
+        if values:
+            result.append((mask, values))
     
     return result
 
@@ -92,40 +91,12 @@ def generate_classifier(extension_name, mask_table):
     for mask, values in mask_table:
         lines.append(f"    masked = insn & 0x{mask:08x};")
         
-        # Group consecutive values into ranges
-        ranges = []
-        i = 0
-        while i < len(values):
-            start = values[i]
-            end = start
-            j = i + 1
-            
-            # Find consecutive values (accounting for mask granularity)
-            step = 1 << (32 - bin(mask).count('1'))
-            while j < len(values) and values[j] == end + step:
-                end = values[j]
-                j += 1
-            
-            if end > start:
-                ranges.append(f"    if (masked >= 0x{start:08x} && masked <= 0x{end:08x}) return true;")
-            else:
-                ranges.append(f"    if (masked == 0x{start:08x}) return true;")
-            
-            i = j
-        
-        # If too many individual checks, just emit them
-        if len(ranges) > 20:
-            # Use a switch statement for readability
-            lines.append(f"    switch (masked) {{")
-            for value in values[:100]:  # Limit to avoid huge switches
-                lines.append(f"        case 0x{value:08x}: return true;")
-            if len(values) > 100:
-                lines.append(f"        // ... and {len(values) - 100} more cases")
-            lines.append(f"        default: break;")
-            lines.append(f"    }}")
-        else:
-            lines.extend(ranges)
-        
+        # Always use switch for consistency and compiler optimization
+        lines.append(f"    switch (masked) {{")
+        for value in values:
+            lines.append(f"        case 0x{value:08x}: return true;")
+        lines.append(f"        default: break;")
+        lines.append(f"    }}")
         lines.append("")
     
     lines.append("    return false;")
